@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { CheckCircle, XCircle, Info, Maximize2 } from 'lucide-react';
 import clsx from 'clsx';
 import { type Question } from '@/data/questions';
@@ -19,28 +19,21 @@ export default function QuestionCard({
   showResult,
   mode
 }: QuestionCardProps) {
-  const [selectedOption, setSelectedOption] = useState<number | null>(userAnswer);
-  
-  useEffect(() => {
-    setSelectedOption(userAnswer);
-  }, [userAnswer, question.id]);
-
   const handleSelect = (idx: number) => {
     if (showResult && mode !== 'exam') return; // 如果已经显示结果且不是考试模式，禁止修改
     if (mode === 'exam' && showResult) return; // 考试结束后禁止修改
     
-    setSelectedOption(idx);
     onSelectAnswer(idx);
   };
 
   const getOptionStatus = (idx: number) => {
     if (!showResult) {
-      if (selectedOption === idx) return 'selected';
+      if (userAnswer === idx) return 'selected';
       return 'default';
     }
     
     if (idx === question.correctAnswer) return 'correct';
-    if (selectedOption === idx && idx !== question.correctAnswer) return 'incorrect';
+    if (userAnswer === idx && idx !== question.correctAnswer) return 'incorrect';
     return 'default';
   };
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import { RotateCcw, Award, AlertTriangle, BookOpen } from 'lucide-react';
-import { type Question } from '@/data/questions';
 
 interface ResultCardProps {
   score: number;

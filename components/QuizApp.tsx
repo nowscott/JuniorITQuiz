@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  Menu, X, ChevronLeft, ChevronRight, CheckCircle, Clock, Search
+  Menu, ChevronLeft, ChevronRight, CheckCircle, Clock, Search
 } from 'lucide-react';
 import { questionData, type ModuleData, type Question } from '@/data/questions';
 import clsx from 'clsx';
@@ -27,6 +27,7 @@ export default function QuizApp() {
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [showResultCard, setShowResultCard] = useState(false);
   const [jumpInput, setJumpInput] = useState('');
+  const [isJumping, setIsJumping] = useState(false);
   
   // 无尽模式相关
   const [infinitePool, setInfinitePool] = useState<Question[]>([]);
@@ -210,16 +211,7 @@ export default function QuizApp() {
     }
   };
 
-  const handleHeaderJump = (e: React.FormEvent) => {
-    e.preventDefault();
-    const id = parseInt(jumpInput);
-    if (!isNaN(id)) {
-      jumpToQuestion(id);
-      (document.activeElement as HTMLElement)?.blur();
-    }
-  };
-
-  const calculateScore = () => {
+  const examResult = useMemo(() => {
     if (!examQuestions.length) return { score: 0, correct: 0 };
     let correct = 0;
     examQuestions.forEach((q, i) => {
@@ -229,9 +221,7 @@ export default function QuizApp() {
       score: Math.round((correct / examQuestions.length) * 100),
       correct
     };
-  };
-
-  const examResult = useMemo(() => calculateScore(), [userAnswers, examQuestions]);
+  }, [userAnswers, examQuestions]);
 
   const currentUserAnswer = userAnswers[mode === 'exam' ? 'exam' : (mode === 'infinite' ? 'infinite' : currentModuleId)]?.[currentQuestionIndex] ?? null;
   const showResult = (mode === 'exam' && examSubmitted) || ((mode === 'practice' || mode === 'infinite') && currentUserAnswer !== null);
@@ -239,12 +229,14 @@ export default function QuizApp() {
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden">
       {/* Mobile Menu Button */}
-      <button 
-        className="fixed top-4 left-4 z-50 p-2 bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-gray-200 md:hidden"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
+      {!sidebarOpen && (
+        <button 
+          className="fixed top-4 left-4 z-50 p-2 bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-gray-200 md:hidden"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <Menu size={20} />
+        </button>
+      )}
 
       <Sidebar 
         currentModuleId={currentModuleId}
@@ -256,55 +248,63 @@ export default function QuizApp() {
         onClose={() => setSidebarOpen(false)}
         isCollapsed={sidebarCollapsed}
         toggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        onJumpToQuestion={jumpToQuestion}
       />
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-gray-50/50">
         {/* Header */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200/50 flex items-center justify-between px-6 md:px-8 z-10 sticky top-0">
-          <div className="ml-10 md:ml-0 flex items-center gap-4">
-            <h2 className="text-lg font-bold text-gray-900 tracking-tight">
+          <div className="ml-10 md:ml-0 flex items-center gap-4 overflow-hidden">
+            <h2 className="text-lg font-bold text-gray-900 tracking-tight truncate">
               {currentModuleData?.title}
             </h2>
           </div>
           
-          <div className="flex items-center space-x-4">
-            {/* 跳转题号 (仅练习模式) */}
-            {mode === 'practice' && (
-              <form onSubmit={handleHeaderJump} className="relative hidden md:block group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-xs text-gray-400 font-medium">No.</span>
-                </div>
-                <input 
-                  type="number"
-                  placeholder="题号"
-                  value={jumpInput}
-                  onChange={(e) => setJumpInput(e.target.value)}
-                  className="w-32 pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all bg-gray-50 focus:bg-white placeholder-gray-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <button 
-                  type="submit"
-                  disabled={!jumpInput}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 p-1 disabled:opacity-50 transition-colors"
-                >
-                  <Search size={14} />
-                </button>
-              </form>
-            )}
+          <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
              {mode === 'exam' && !examSubmitted && (
-               <div className="flex items-center px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-sm font-medium border border-purple-100">
-                 <Clock size={14} className="mr-2" />
+               <div className="flex items-center px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-medium border border-purple-100 whitespace-nowrap">
+                 <Clock size={14} className="mr-1 md:mr-2" />
                  考试中
                </div>
              )}
              
-             <div className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-               {mode === 'infinite' ? (
-                 <span className="flex items-center">
-                   无尽模式 <span className="mx-2 text-gray-300">|</span> 第 {currentQuestionIndex + 1} 题
-                 </span>
+             <div className="relative">
+               {isJumping ? (
+                 <form 
+                   onSubmit={(e) => {
+                     e.preventDefault();
+                     const id = parseInt(jumpInput);
+                     if (!isNaN(id)) jumpToQuestion(id);
+                     setIsJumping(false);
+                   }}
+                   className="flex items-center"
+                 >
+                   <input 
+                     autoFocus
+                     type="number"
+                     placeholder="题号"
+                     value={jumpInput}
+                     onChange={(e) => setJumpInput(e.target.value)}
+                     onBlur={() => !jumpInput && setIsJumping(false)}
+                     className="w-20 md:w-24 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none ring-2 ring-blue-100 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                   />
+                 </form>
                ) : (
-                 <span>进度: {currentQuestionIndex + 1} / {currentModuleData?.questions.length}</span>
+                 <button 
+                   onClick={() => mode === 'practice' && setIsJumping(true)}
+                   className={clsx(
+                     "text-xs md:text-sm font-medium px-3 py-1 rounded-full transition-all flex items-center",
+                     mode === 'practice' 
+                       ? "bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100" 
+                       : "bg-gray-100 text-gray-500"
+                   )}
+                 >
+                   {mode === 'infinite' ? (
+                     <span>无尽模式 | 第 {currentQuestionIndex + 1} 题</span>
+                   ) : (
+                     <span>进度: {currentQuestionIndex + 1} / {currentModuleData?.questions.length}</span>
+                   )}
+                   {mode === 'practice' && <Search size={12} className="ml-1 opacity-50" />}
+                 </button>
                )}
              </div>
           </div>
@@ -312,7 +312,7 @@ export default function QuizApp() {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
-          <div className="max-w-3xl mx-auto pb-20">
+          <div className="max-w-3xl mx-auto pb-24">
             {showResultCard && mode === 'exam' ? (
               <ResultCard 
                 score={examResult.score}
@@ -322,50 +322,50 @@ export default function QuizApp() {
                 onReviewWrong={reviewWrong}
               />
             ) : currentQuestion ? (
-              <QuestionCard 
-                key={currentQuestion.id} // 强制重新渲染以重置状态
-                question={currentQuestion}
-                userAnswer={currentUserAnswer}
-                onSelectAnswer={handleAnswer}
-                showResult={showResult}
-                mode={mode}
-              />
+              <div className="space-y-6">
+                <QuestionCard 
+                  key={currentQuestion.id} 
+                  question={currentQuestion}
+                  userAnswer={currentUserAnswer}
+                  onSelectAnswer={handleAnswer}
+                  showResult={showResult}
+                  mode={mode}
+                />
+                
+                {/* 题目下方的导航按钮 */}
+                <div className="flex items-center justify-between gap-4 px-2">
+                  <button 
+                    onClick={handlePrevQuestion}
+                    disabled={currentQuestionIndex === 0}
+                    className="flex-1 max-w-[160px] px-4 py-3 rounded-2xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-95 shadow-sm"
+                  >
+                    <ChevronLeft size={18} className="mr-1" /> 上一题
+                  </button>
+                  
+                  {mode === 'exam' && !examSubmitted && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1 ? (
+                    <button 
+                      onClick={submitExam}
+                      className="flex-1 max-w-[200px] px-6 py-3 rounded-2xl text-sm font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200 flex items-center justify-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+                    >
+                      提交试卷 <CheckCircle size={18} className="ml-2" />
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={handleNextQuestion}
+                      disabled={mode !== 'infinite' && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1}
+                      className="flex-1 max-w-[200px] px-6 py-3 rounded-2xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+                    >
+                      {mode === 'infinite' ? '下一题' : (currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1 ? '已完成' : '下一题')}
+                      <ChevronRight size={18} className="ml-1" />
+                    </button>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="text-center py-20 animate-pulse">
                 <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto mb-4"></div>
                 <div className="h-32 bg-gray-100 rounded-xl mx-auto w-full max-w-lg"></div>
               </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Footer Navigation */}
-        <div className="bg-white border-t border-gray-200 p-4 shadow-lg shadow-gray-200/50 z-20">
-          <div className="max-w-3xl mx-auto flex justify-between items-center">
-            <button 
-              onClick={handlePrevQuestion}
-              disabled={currentQuestionIndex === 0}
-              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center transition-all active:scale-95"
-            >
-              <ChevronLeft size={18} className="mr-1" /> 上一题
-            </button>
-            
-            {mode === 'exam' && !examSubmitted && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1 ? (
-              <button 
-                onClick={submitExam}
-                className="px-8 py-2.5 rounded-xl text-sm font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200 flex items-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-              >
-                提交试卷 <CheckCircle size={18} className="ml-2" />
-              </button>
-            ) : (
-              <button 
-                onClick={handleNextQuestion}
-                disabled={mode !== 'infinite' && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1}
-                className="px-8 py-2.5 rounded-xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-              >
-                {mode === 'infinite' ? '下一题' : (currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1 ? '已完成' : '下一题')}
-                <ChevronRight size={18} className="ml-1" />
-              </button>
             )}
           </div>
         </div>

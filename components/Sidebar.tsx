@@ -1,23 +1,22 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   BookOpen, 
   GraduationCap, 
   Infinity as InfinityIcon, 
   PanelLeftClose, 
   PanelLeftOpen,
-  Search,
-  Hash,
   Cpu,
   Monitor,
   Network,
   FileText,
   Grid,
-  Presentation
+  Presentation,
+  X
 } from 'lucide-react';
 import clsx from 'clsx';
 import { questionData } from '@/data/questions';
 
-const moduleIcons: Record<string, any> = {
+const moduleIcons: Record<string, React.ElementType> = {
   module1: Cpu,
   module2: Monitor,
   module3: Network,
@@ -36,7 +35,6 @@ interface SidebarProps {
   onClose: () => void;
   isCollapsed: boolean;
   toggleCollapse: () => void;
-  onJumpToQuestion: (id: number) => void;
 }
 
 export default function Sidebar({
@@ -49,19 +47,7 @@ export default function Sidebar({
   onClose,
   isCollapsed,
   toggleCollapse,
-  onJumpToQuestion
 }: SidebarProps) {
-  const [jumpId, setJumpId] = useState('');
-
-  const handleJump = (e: React.FormEvent) => {
-    e.preventDefault();
-    const id = parseInt(jumpId);
-    if (!isNaN(id)) {
-      onJumpToQuestion(id);
-      setJumpId('');
-    }
-  };
-
   return (
     <aside className={clsx(
       "fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-100 shadow-sm transform transition-all duration-300 ease-in-out md:relative",
@@ -87,17 +73,30 @@ export default function Sidebar({
             </div>
           )}
           
-          {/* 折叠按钮 (仅桌面端显示) */}
-          <button 
-            onClick={toggleCollapse}
-            className={clsx(
-              "hidden md:flex p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors",
-              isCollapsed ? "mx-auto" : "" // 收起时居中
+          <div className="flex items-center space-x-1">
+            {/* 移动端关闭按钮 */}
+            {isOpen && (
+              <button 
+                onClick={onClose}
+                className="md:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
+                title="关闭侧边栏"
+              >
+                <X size={20} />
+              </button>
             )}
-            title={isCollapsed ? "展开侧边栏" : "折叠侧边栏"}
-          >
-            {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-          </button>
+
+            {/* 折叠按钮 (仅桌面端显示) */}
+            <button 
+              onClick={toggleCollapse}
+              className={clsx(
+                "hidden md:flex p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors",
+                isCollapsed ? "mx-auto" : "" // 收起时居中
+              )}
+              title={isCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+            >
+              {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
+          </div>
         </div>
 
         {/* Navigation */}
