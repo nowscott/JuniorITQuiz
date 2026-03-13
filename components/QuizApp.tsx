@@ -9,8 +9,13 @@ import clsx from 'clsx';
 import Sidebar from './Sidebar';
 import QuestionCard from './QuestionCard';
 import ResultCard from './ResultCard';
+import ProgressModal from './ProgressModal';
+import SettingsModal from './SettingsModal';
 
 type AppMode = 'practice' | 'exam' | 'infinite';
+
+const PROGRESS_STORAGE_KEY = 'quiz_progress_v1';
+const SETTINGS_STORAGE_KEY = 'quiz_settings_v1';
 
 export default function QuizApp() {
   // 动态获取第一个模块 ID 作为默认值
@@ -26,13 +31,91 @@ export default function QuizApp() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [showResultCard, setShowResultCard] = useState(false);
-  const [jumpInput, setJumpInput] = useState('');
-  const [isJumping, setIsJumping] = useState(false);
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  
+  // 考试配置
+  const [examConfig, setExamConfig] = useState({
+    questionCount: 20,
+    timeLimit: 60 // 分钟
+  });
+
+  // 倒计时
+  const [timeLeft, setTimeLeft] = useState(0); // 秒
   
   // 无尽模式相关
   const [infinitePool, setInfinitePool] = useState<Question[]>([]);
   
-  // 收集所有题目的辅助函数
+  // 初始化从 localStorage 读取进度和设置
+  useEffect(() => {
+    const savedProgress = localStorage.getItem(PROGRESS_STORAGE_KEY);
+    if (savedProgress) {
+      try {
+        const parsed = JSON.parse(savedProgress);
+        setUserAnswers(parsed.answers || {});
+        if (parsed.lastModuleId) setCurrentModuleId(parsed.lastModuleId);
+        if (parsed.lastIndex !== undefined) setCurrentQuestionIndex(parsed.lastIndex);
+      } catch (e) {
+        console.error('Failed to parse saved progress', e);
+      }
+    }
+
+    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (savedSettings) {
+      try {
+        setExamConfig(JSON.parse(savedSettings));
+      } catch (e) {
+        console.error('Failed to parse saved settings', e);
+      }
+    }
+  }, []);
+
+  // 进度保存到 localStorage
+  useEffect(() => {
+    if (Object.keys(userAnswers).length > 0) {
+      localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify({
+        answers: userAnswers,
+        lastModuleId: currentModuleId,
+        lastIndex: currentQuestionIndex
+      }));
+    }
+  }, [userAnswers, currentModuleId, currentQuestionIndex]);
+
+  // 设置保存到 localStorage
+  useEffect(() => {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(examConfig));
+  }, [examConfig]);
+
+  // 考试计时逻辑
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (mode === 'exam' && !examSubmitted && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            submitExam(true); // 自动交卷
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [mode, examSubmitted, timeLeft]);
+
+  // 格式化时间
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const handleClearProgress = () => {
+    localStorage.removeItem(PROGRESS_STORAGE_KEY);
+    setUserAnswers({});
+    setCurrentQuestionIndex(0);
+    alert('已清空所有进度');
+  };
   const getAllQuestions = () => {
     const allQuestions: Question[] = [];
     Object.entries(questionData).forEach(([modId, modData]) => {
@@ -143,8 +226,8 @@ export default function QuizApp() {
     
     const allQuestions = getAllQuestions();
     
-    // 随机取20题 (如果总题数少于20，则取全部)
-    const count = Math.min(20, allQuestions.length);
+    // 随机取题目数量 (根据设置)
+    const count = Math.min(examConfig.questionCount, allQuestions.length);
     const newExamQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, count).map((q, i) => ({
       ...q,
       examQuestionId: i + 1
@@ -157,6 +240,7 @@ export default function QuizApp() {
     setExamSubmitted(false);
     setShowResultCard(false);
     setSidebarOpen(false);
+    setTimeLeft(examConfig.timeLimit * 60); // 设置倒计时
   };
 
   // 开始无尽模式
@@ -178,11 +262,12 @@ export default function QuizApp() {
   };
 
   // 提交试卷
-  const submitExam = () => {
-    if (!confirm('确认提交试卷？提交后将无法修改答案。')) return;
+  const submitExam = (auto = false) => {
+    if (!auto && !confirm('确认提交试卷？提交后将无法修改答案。')) return;
     setExamSubmitted(true);
     setShowResultCard(true); // 显示成绩卡
     setCurrentQuestionIndex(0); 
+    if (auto) alert('考试时间到，系统已自动提交试卷。');
   };
 
   const restartExam = () => {
@@ -195,19 +280,6 @@ export default function QuizApp() {
     const firstWrongIndex = examQuestions.findIndex((q, i) => userAnswers['exam']?.[i] !== q.correctAnswer);
     if (firstWrongIndex !== -1) {
       setCurrentQuestionIndex(firstWrongIndex);
-    }
-  };
-
-  const jumpToQuestion = (questionId: number) => {
-    // 找到该 ID 对应的索引
-    const index = currentModuleData.questions.findIndex(q => q.id === questionId);
-    if (index !== -1) {
-      setCurrentQuestionIndex(index);
-      // 如果在移动端，跳转后关闭侧边栏
-      setSidebarOpen(false);
-      setJumpInput(''); // 清空输入
-    } else {
-      alert('当前模块未找到该题号');
     }
   };
 
@@ -244,6 +316,10 @@ export default function QuizApp() {
         onModuleChange={handleModuleChange}
         onStartExam={startExam}
         onStartInfinite={startInfinite}
+        onOpenSettings={() => {
+          setIsSettingsModalOpen(true);
+          setSidebarOpen(false);
+        }}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         isCollapsed={sidebarCollapsed}
@@ -263,52 +339,49 @@ export default function QuizApp() {
              {mode === 'exam' && !examSubmitted && (
                <div className="flex items-center px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-medium border border-purple-100 whitespace-nowrap">
                  <Clock size={14} className="mr-1 md:mr-2" />
-                 考试中
+                 {formatTime(timeLeft)}
                </div>
              )}
              
              <div className="relative">
-               {isJumping ? (
-                 <form 
-                   onSubmit={(e) => {
-                     e.preventDefault();
-                     const id = parseInt(jumpInput);
-                     if (!isNaN(id)) jumpToQuestion(id);
-                     setIsJumping(false);
-                   }}
-                   className="flex items-center"
-                 >
-                   <input 
-                     autoFocus
-                     type="number"
-                     placeholder="题号"
-                     value={jumpInput}
-                     onChange={(e) => setJumpInput(e.target.value)}
-                     onBlur={() => !jumpInput && setIsJumping(false)}
-                     className="w-20 md:w-24 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none ring-2 ring-blue-100 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                   />
-                 </form>
-               ) : (
-                 <button 
-                   onClick={() => mode === 'practice' && setIsJumping(true)}
-                   className={clsx(
-                     "text-xs md:text-sm font-medium px-3 py-1 rounded-full transition-all flex items-center",
-                     mode === 'practice' 
-                       ? "bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100" 
-                       : "bg-gray-100 text-gray-500"
-                   )}
-                 >
-                   {mode === 'infinite' ? (
-                     <span>无尽模式 | 第 {currentQuestionIndex + 1} 题</span>
-                   ) : (
-                     <span>进度: {currentQuestionIndex + 1} / {currentModuleData?.questions.length}</span>
-                   )}
-                   {mode === 'practice' && <Search size={12} className="ml-1 opacity-50" />}
-                 </button>
-               )}
+               <button 
+                 onClick={() => mode === 'practice' && setIsProgressModalOpen(true)}
+                 className={clsx(
+                   "text-xs md:text-sm font-medium px-3 py-1 rounded-full transition-all flex items-center",
+                   mode === 'practice' 
+                     ? "bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100" 
+                     : "bg-gray-100 text-gray-500"
+                 )}
+               >
+                 {mode === 'infinite' ? (
+                   <span>无尽模式 | 第 {currentQuestionIndex + 1} 题</span>
+                 ) : (
+                   <span>进度: {currentQuestionIndex + 1} / {currentModuleData?.questions.length}</span>
+                 )}
+                 {mode === 'practice' && <Search size={12} className="ml-1 opacity-50" />}
+               </button>
              </div>
           </div>
         </header>
+
+        {/* Modals */}
+        <ProgressModal 
+          isOpen={isProgressModalOpen}
+          onClose={() => setIsProgressModalOpen(false)}
+          title={currentModuleData.title}
+          questions={currentModuleData.questions}
+          userAnswers={userAnswers[currentModuleId] || {}}
+          currentIndex={currentQuestionIndex}
+          onJump={(index) => setCurrentQuestionIndex(index)}
+        />
+
+        <SettingsModal 
+          isOpen={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
+          examConfig={examConfig}
+          onUpdateExamConfig={setExamConfig}
+          onClearProgress={handleClearProgress}
+        />
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
@@ -344,7 +417,7 @@ export default function QuizApp() {
                   
                   {mode === 'exam' && !examSubmitted && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1 ? (
                     <button 
-                      onClick={submitExam}
+                      onClick={() => submitExam()}
                       className="flex-1 max-w-[200px] px-6 py-3 rounded-2xl text-sm font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200 flex items-center justify-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
                     >
                       提交试卷 <CheckCircle size={18} className="ml-2" />

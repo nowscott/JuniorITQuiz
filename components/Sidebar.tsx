@@ -11,7 +11,8 @@ import {
   FileText,
   Grid,
   Presentation,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 import clsx from 'clsx';
 import { questionData } from '@/data/questions';
@@ -31,6 +32,7 @@ interface SidebarProps {
   onModuleChange: (id: string) => void;
   onStartExam: () => void;
   onStartInfinite: () => void;
+  onOpenSettings: () => void;
   isOpen: boolean;
   onClose: () => void;
   isCollapsed: boolean;
@@ -43,6 +45,7 @@ export default function Sidebar({
   onModuleChange,
   onStartExam,
   onStartInfinite,
+  onOpenSettings,
   isOpen,
   onClose,
   isCollapsed,
@@ -188,6 +191,21 @@ export default function Sidebar({
                 {!isCollapsed && <span className="flex-1 text-left">随机无尽模式</span>}
               </button>
             </div>
+          </div>
+
+          {/* Settings Entry */}
+          <div className="pt-4 border-t border-gray-50">
+            <button
+              onClick={onOpenSettings}
+              title={isCollapsed ? "设置" : undefined}
+              className={clsx(
+                "w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                isCollapsed && "justify-center"
+              )}
+            >
+              <Settings size={18} className="text-gray-400 group-hover:text-gray-500 mr-3" />
+              {!isCollapsed && <span className="flex-1 text-left">设置</span>}
+            </button>
           </div>
         </nav>
 
