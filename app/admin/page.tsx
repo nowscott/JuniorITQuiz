@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ModuleData, Question, QuestionData } from '@/data/types';
-import { Save, Plus, Trash2, Edit2, ChevronRight, X, AlertCircle } from 'lucide-react';
+import { Question, QuestionData } from '@/data/types';
+import { Save, Plus, Trash2, Edit2, X, AlertCircle } from 'lucide-react';
 import ConfirmationModal from '@/components/modals/ConfirmationModal'; // 引入自定义组件
 
 export default function AdminPage() {
@@ -34,7 +34,7 @@ export default function AdminPage() {
         setLoading(false);
       })
       .catch(err => {
-        console.error('Failed to load data:', err);
+        console.error('加载数据失败:', err);
         setMessage({ type: 'error', text: '加载数据失败，请刷新重试' });
         setLoading(false);
       });
@@ -50,11 +50,11 @@ export default function AdminPage() {
         body: JSON.stringify(data)
       });
       
-      if (!res.ok) throw new Error('Save failed');
+      if (!res.ok) throw new Error('保存失败');
       
       setMessage({ type: 'success', text: '保存成功！' });
       setTimeout(() => setMessage(null), 3000);
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: '保存失败，请检查控制台' });
     } finally {
       setSaving(false);

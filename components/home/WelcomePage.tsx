@@ -28,7 +28,11 @@ export default function WelcomePage({
   };
 
   useEffect(() => {
-    randomizeTip();
+    // 使用 setTimeout 将状态更新推迟到下一个事件循环，避免“在 Effect 中同步调用 setState”的警告
+    const timer = setTimeout(() => {
+      randomizeTip();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
