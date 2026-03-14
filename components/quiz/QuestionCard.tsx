@@ -3,6 +3,7 @@ import { CheckCircle, XCircle, Info, Maximize2 } from 'lucide-react';
 import clsx from 'clsx';
 import { type Question } from '@/data/questions';
 import Image from 'next/image';
+import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 
 interface QuestionCardProps {
   question: Question;
@@ -213,12 +214,10 @@ export default function QuestionCard({
               <Info className="text-blue-500" size={20} />
               <h4 className="font-bold text-blue-900">题目解析</h4>
             </div>
-            <p className="text-blue-800/80 leading-relaxed text-sm md:text-base">
-              正确答案：<span className="font-bold">{question.options[question.correctAnswer]}</span>
-              <br/>
-              <br/>
-              {question.explanation}
-            </p>
+            <MarkdownRenderer
+              className="prose prose-sm md:prose-base max-w-none text-blue-800/80"
+              content={`**正确答案：** ${question.options[question.correctAnswer]}\n\n${question.explanation || ''}`}
+            />
             {question.explanationImage && (
               <div className="mt-4 rounded-xl overflow-hidden border border-blue-200/50">
                  <Image 
