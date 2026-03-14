@@ -4,6 +4,8 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 import path from 'path';
 import fs from 'fs/promises';
 
+export const runtime = 'nodejs';
+
 // Initialize OpenAI client with DashScope configuration
 const openai = new OpenAI({
     apiKey: process.env.DASHSCOPE_API_KEY,

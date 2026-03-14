@@ -4,6 +4,8 @@ import path from 'path';
 
 const questionsFilePath = path.join(process.cwd(), 'data', 'questions.json');
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     const data = fs.readFileSync(questionsFilePath, 'utf-8');
