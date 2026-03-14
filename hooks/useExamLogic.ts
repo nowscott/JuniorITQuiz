@@ -235,7 +235,8 @@ export function useExamLogic(
       const allQuestions = getAllQuestions();
       if (allQuestions.length > 0) {
         const firstQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
-        setInfiniteQuestions([{ ...firstQ, id: 1 }]);
+        // id is already a UUID string
+        setInfiniteQuestions([{ ...firstQ }]);
       }
     });
   };
@@ -252,7 +253,8 @@ export function useExamLogic(
       if (infinitePool.length > 0) {
         const nextQ = infinitePool[0];
         setInfinitePool(prev => prev.slice(1));
-        setInfiniteQuestions(prev => [...prev, { ...nextQ, id: prev.length + 1 }]);
+        // Use existing UUID, do not overwrite with number
+        setInfiniteQuestions(prev => [...prev, { ...nextQ }]);
         setCurrentQuestionIndex(prev => prev + 1);
         
         if (infinitePool.length <= 1) {

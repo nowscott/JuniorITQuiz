@@ -14,7 +14,7 @@ export default function AdminPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isDev, setIsDev] = useState(true);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null); // 新增：删除确认状态
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null); // 新增：删除确认状态
 
   // Check environment
   useEffect(() => {
@@ -80,7 +80,7 @@ export default function AdminPage() {
     setEditingQuestion(null);
   };
 
-  const handleDeleteQuestion = (id: number) => {
+  const handleDeleteQuestion = (id: string) => {
     if (!data || !selectedModuleId) return;
     setDeleteConfirmId(id);
   };
@@ -103,14 +103,12 @@ export default function AdminPage() {
   const handleAddQuestion = () => {
     if (!data || !selectedModuleId) return;
     
-    // Generate new ID (max + 1)
+    // Use random UUID for new questions
+    const newId = crypto.randomUUID();
     const currentQuestions = data[selectedModuleId].questions;
-    const maxId = currentQuestions.length > 0 
-      ? Math.max(...currentQuestions.map(q => q.id)) 
-      : 0;
       
     const newQuestion: Question = {
-      id: maxId + 1,
+      id: newId,
       text: '新题目',
       options: ['选项A', '选项B', '选项C', '选项D'],
       correctAnswer: 0,
@@ -207,7 +205,7 @@ export default function AdminPage() {
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">ID: {q.id}</span>
+                        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">#{data[selectedModuleId].questions.findIndex(x => x.id === q.id) + 1}</span>
                         <h3 className="font-medium text-gray-900 line-clamp-2">{q.text}</h3>
                       </div>
                       <div className="text-sm text-gray-500 pl-1">
@@ -246,7 +244,9 @@ export default function AdminPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="font-bold text-lg">编辑题目 (ID: {editingQuestion.id})</h3>
+              <h3 className="font-bold text-lg">
+                编辑题目 #{selectedModuleId && data[selectedModuleId].questions.findIndex(x => x.id === editingQuestion.id) + 1}
+              </h3>
               <button onClick={() => setIsEditModalOpen(false)} className="p-1 hover:bg-gray-200 rounded-full">
                 <X size={20} />
               </button>
