@@ -22,8 +22,8 @@ export default function MarkdownRenderer({ content, className }: Props) {
           li: (props) => <li {...props} className="my-1" />,
           strong: (props) => <strong {...props} className="font-semibold" />,
           em: (props) => <em {...props} className="italic" />,
-          code: (props) => {
-            const isInline = (props as any).inline as boolean | undefined;
+          code: (props: React.HTMLAttributes<HTMLElement> & { inline?: boolean }) => {
+            const isInline = props.inline;
             const baseClass = (props.className ? props.className + ' ' : '');
             if (isInline) {
               return <code {...props} className={baseClass + 'px-1 py-0.5 rounded bg-gray-100 text-gray-800'} />;

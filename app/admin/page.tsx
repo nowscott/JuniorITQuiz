@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Question, QuestionData } from '@/data/types';
 import ConfirmationModal from '@/components/modals/ConfirmationModal'; // 引入自定义组件
 import AdminSidebar from '@/components/admin/AdminSidebar';
@@ -18,6 +18,8 @@ export default function AdminPage() {
   const [isDev, setIsDev] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null); // 新增：删除确认状态
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generateStatus, setGenerateStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 
   // Check environment
@@ -46,6 +48,7 @@ export default function AdminPage() {
 
   const handleGenerateExplanation = async () => {
     if (!editingQuestion) return;
+    setGenerateStatus('idle');
     setIsGenerating(true);
     try {
       const response = await fetch('/api/generate-explanation', {
@@ -66,11 +69,14 @@ export default function AdminPage() {
         ...editingQuestion,
         explanation: data.explanation || '生成解析失败'
       });
-      
-      setMessage({ type: 'success', text: '解析生成成功！' });
+      setGenerateStatus('success');
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => {
+        setGenerateStatus('idle');
+      }, 2000);
     } catch (error) {
       console.error(error);
-      setMessage({ type: 'error', text: '生成解析失败，请稍后重试' });
+      setGenerateStatus('error');
     } finally {
       setIsGenerating(false);
     }
@@ -162,7 +168,16 @@ export default function AdminPage() {
     // Automatically open edit modal for new question
     setEditingQuestion(newQuestion);
     setIsEditModalOpen(true);
+    setGenerateStatus('idle');
   };
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
 
   if (loading) return <div className="p-8 text-center">加载中...</div>;
   if (!data) return <div className="p-8 text-center text-red-500">数据加载失败</div>;
@@ -186,7 +201,7 @@ export default function AdminPage() {
           <QuestionList
             module={data[selectedModuleId]}
             onAdd={handleAddQuestion}
-            onEdit={(q) => { setEditingQuestion(q); setIsEditModalOpen(true); }}
+            onEdit={(q) => { setEditingQuestion(q); setIsEditModalOpen(true); setGenerateStatus('idle'); }}
             onDelete={handleDeleteQuestion}
           />
         )}
@@ -206,6 +221,7 @@ export default function AdminPage() {
         onConfirm={() => editingQuestion && handleUpdateQuestion(editingQuestion)}
         onGenerate={handleGenerateExplanation}
         isGenerating={isGenerating}
+        generateStatus={generateStatus}
       />
 
       {/* Delete Confirmation Modal */}

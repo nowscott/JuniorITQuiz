@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Question } from '@/data/types';
-import { Loader2, Sparkles, X } from 'lucide-react';
+import { Loader2, Sparkles, X, Check, XCircle } from 'lucide-react';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
   onConfirm: () => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  generateStatus: 'idle' | 'success' | 'error';
 }
 
 export default function EditQuestionModal({
@@ -22,7 +23,8 @@ export default function EditQuestionModal({
   onClose,
   onConfirm,
   onGenerate,
-  isGenerating
+  isGenerating,
+  generateStatus
 }: Props) {
   const [showPreview, setShowPreview] = useState(false);
   if (!isOpen || !question) return null;
@@ -104,10 +106,16 @@ export default function EditQuestionModal({
               <button
                 onClick={onGenerate}
                 disabled={isGenerating || !question.text}
-                className="flex items-center gap-1 text-xs bg-purple-100 text-purple-700 hover:bg-purple-200 px-2 py-1 rounded transition-colors disabled:opacity-50"
+                className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors disabled:opacity-50
+                  ${generateStatus === 'success' ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : generateStatus === 'error' ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
               >
-                {isGenerating ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
-                AI 生成解析
+                {isGenerating && <Loader2 className="animate-spin" size={14} />}
+                {!isGenerating && generateStatus === 'success' && <Check size={14} />}
+                {!isGenerating && generateStatus === 'error' && <XCircle size={14} />}
+                {!isGenerating && generateStatus === 'idle' && <Sparkles size={14} />}
+                {isGenerating ? '生成中…' : generateStatus === 'success' ? '生成成功' : generateStatus === 'error' ? '生成失败' : 'AI 生成解析'}
               </button>
             </div>
             <div className="flex items-center gap-2 mb-2">
