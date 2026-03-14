@@ -12,7 +12,8 @@ import {
   Grid,
   Presentation,
   X,
-  Settings
+  Settings,
+  Home
 } from 'lucide-react';
 import clsx from 'clsx';
 import { questionData } from '@/data/questions';
@@ -28,11 +29,12 @@ const moduleIcons: Record<string, ElementType> = {
 
 interface SidebarProps {
   currentModuleId: string;
-  mode: 'practice' | 'exam' | 'infinite';
+  mode: 'welcome' | 'practice' | 'exam' | 'infinite';
   onModuleChange: (id: string) => void;
   onStartExam: () => void;
   onStartInfinite: () => void;
   onOpenSettings: () => void;
+  onGoHome: () => void;
   isOpen: boolean;
   onClose: () => void;
   isCollapsed: boolean;
@@ -48,6 +50,7 @@ export default function Sidebar({
   onStartExam,
   onStartInfinite,
   onOpenSettings,
+  onGoHome,
   isOpen,
   onClose,
   isCollapsed,
@@ -120,6 +123,29 @@ export default function Sidebar({
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+          {/* Home Button */}
+          <button
+            onClick={(e) => handleIntercept(e, onGoHome)}
+            title={isCollapsed ? "主页" : undefined}
+            className={clsx(
+              "w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group",
+              mode === 'welcome'
+                ? "bg-blue-50 text-blue-700 shadow-sm"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+              isCollapsed && "justify-center"
+            )}
+          >
+            <Home 
+              size={18} 
+              className={clsx(
+                "transition-colors",
+                mode === 'welcome' ? "text-blue-600" : "text-gray-400 group-hover:text-gray-500",
+                !isCollapsed && "mr-3"
+              )} 
+            />
+            {!isCollapsed && <span className="flex-1 text-left">主页</span>}
+          </button>
+
           {/* Modules Section */}
           <div className="space-y-2">
             {!isCollapsed && (
