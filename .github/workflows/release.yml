@@ -1,0 +1,73 @@
+name: Release and Version Bump
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'chore(release):')"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version and push tag
+        id: version
+        run: |
+          # 根据 commit message 判断版本更新类型
+          # fix: -> patch
+          # feat: -> minor
+          # BREAKING CHANGE: -> major
+          # 默认为 patch
+          
+          BUMP_TYPE="patch"
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          
+          if [[ "$COMMIT_MSG" == *"feat:"* ]]; then
+            BUMP_TYPE="minor"
+          elif [[ "$COMMIT_MSG" == *"BREAKING CHANGE:"* ]]; then
+            BUMP_TYPE="major"
+          fi
+          
+          echo "Bumping version type: $BUMP_TYPE"
+          
+          # 更新 package.json 版本
+          npm version $BUMP_TYPE -m "chore(release): %s"
+          
+          # 获取新版本号
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          
+          # 推送变更和标签
+          git push origin HEAD --follow-tags
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.new_version }}
+          name: Release v${{ steps.version.outputs.new_version }}
+          generate_release_notes: true
+          token: ${{ secrets.GITHUB_TOKEN }}
