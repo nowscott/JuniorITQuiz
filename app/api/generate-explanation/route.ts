@@ -6,14 +6,16 @@ import fs from 'fs/promises';
 
 export const runtime = 'nodejs';
 
-// Initialize OpenAI client with DashScope configuration
-const openai = new OpenAI({
-    apiKey: process.env.DASHSCOPE_API_KEY,
-    baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-});
-
 export async function POST(request: Request) {
     try {
+        // 生产环境未配置密钥时直接短路返回，避免构建/运行失败
+        if (!process.env.DASHSCOPE_API_KEY) {
+            return NextResponse.json(
+                { error: '未配置 DASHSCOPE_API_KEY，已禁用解析生成功能' },
+                { status: 501 }
+            );
+        }
+
         const body = await request.json();
         const { question, options, correctAnswer, image } = body;
 
@@ -82,6 +84,12 @@ ${distractorsList}
                 ? { role: "user", content: [{ type: "image_url", image_url: { url: imageUrl } }, { type: "text", text: prompt }] }
                 : { role: "user", content: prompt }
         ];
+
+        // 按需初始化客户端（避免在模块加载阶段因缺少密钥而抛错）
+        const openai = new OpenAI({
+            apiKey: process.env.DASHSCOPE_API_KEY,
+            baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        });
 
         const completion = await openai.chat.completions.create({
             model: "qwen3.5-plus",
