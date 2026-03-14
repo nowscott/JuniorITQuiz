@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import questionsDefault from '@/data/questions.json';
 
 const questionsFilePath = path.join(process.cwd(), 'data', 'questions.json');
 
@@ -11,7 +12,8 @@ export async function GET() {
     const data = fs.readFileSync(questionsFilePath, 'utf-8');
     return NextResponse.json(JSON.parse(data));
   } catch {
-    return NextResponse.json({ error: '保存题目失败' }, { status: 500 });
+    // 在无状态/只读的部署环境（如 Vercel Serverless）中，直接回退到随包发布的数据
+    return NextResponse.json(questionsDefault);
   }
 }
 
