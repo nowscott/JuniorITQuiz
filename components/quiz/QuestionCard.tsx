@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CheckCircle, XCircle, Info, Maximize2 } from 'lucide-react';
+import { CheckCircle, XCircle, Info, Maximize2, Copy, Check } from 'lucide-react';
 import clsx from 'clsx';
 import { type Question } from '@/data/questions';
 import Image from 'next/image';
@@ -88,6 +88,32 @@ export default function QuestionCard({
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question.id, sessionId]); // 依赖 sessionId 变化（例如重新开始考试）时重新打乱
+
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyExplanation = async () => {
+    const rawText = `✅ 正确答案：${question.options[question.correctAnswer]}\n\n${question.explanation || ''}`;
+    
+    // Remove markdown
+    const text = rawText
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Bold
+      .replace(/\*(.*?)\*/g, '$1')     // Italic
+      .replace(/`{3}[\s\S]*?`{3}/g, (match) => match.replace(/`/g, '')) // Code blocks
+      .replace(/`/g, '') // Inline code
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Links
+      .replace(/^#+\s+/gm, '') // Headers
+      .replace(/^\s*[-+*]\s+/gm, '') // List items
+      .replace(/^\s*>\s+/gm, '') // Blockquotes
+      .trim();
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy!', err);
+    }
+  };
 
   // 最终使用的索引：优先使用客户端随机后的，否则使用确定性的（SSR/首次渲染）
   const finalIndices = clientShuffledIndices || shuffledIndices;
@@ -210,9 +236,28 @@ export default function QuestionCard({
       {showResult && (
         <div className="mt-8 pt-8 border-t border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100">
-            <div className="flex items-center space-x-2 mb-3">
-              <Info className="text-blue-500" size={20} />
-              <h4 className="font-bold text-blue-900">题目解析</h4>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <Info className="text-blue-500" size={20} />
+                <h4 className="font-bold text-blue-900">题目解析</h4>
+              </div>
+              <button
+                onClick={handleCopyExplanation}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-white rounded-lg border border-blue-100 hover:bg-blue-50 transition-colors"
+                title="复制纯文本解析"
+              >
+                {isCopied ? (
+                  <>
+                    <Check size={14} className="text-green-500" />
+                    <span className="text-green-600">已复制</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={14} />
+                    <span>复制</span>
+                  </>
+                )}
+              </button>
             </div>
             <MarkdownRenderer
               className="prose prose-sm md:prose-base max-w-none text-blue-800/80"
