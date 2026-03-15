@@ -34,14 +34,14 @@ export default function QuizHeader({
   onOpenProgress,
 }: QuizHeaderProps) {
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 md:px-8 z-30 flex-shrink-0">
-      <div className="ml-10 md:ml-0 flex items-center gap-4 overflow-hidden">
-        <h2 className="text-lg font-bold text-gray-900 tracking-tight truncate">
+    <header className="h-14 md:h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-3 md:px-8 z-30 flex-shrink-0">
+      <div className="ml-8 md:ml-0 flex items-center gap-4 overflow-hidden flex-1 min-w-0 mr-2">
+        <h2 className="text-sm md:text-lg font-bold text-gray-900 tracking-tight truncate">
           {currentModuleData?.title}
         </h2>
       </div>
       
-      <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+      <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
          {/* 退出考试按钮 */}
          {isExamActive && (
            <button 
@@ -51,7 +51,7 @@ export default function QuizHeader({
                e.stopPropagation();
                onExitExam();
              }}
-             className="flex items-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium border border-red-100 hover:bg-red-100 transition-colors"
+             className="flex items-center px-2 py-1 md:px-3 md:py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium border border-red-100 hover:bg-red-100 transition-colors whitespace-nowrap"
              title="提前交卷"
            >
              <CheckCircle size={14} className="mr-1" />
@@ -64,16 +64,17 @@ export default function QuizHeader({
            <button 
              type="button"
              onClick={onBackToResult}
-             className="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
+             className="flex items-center px-2 py-1 md:px-3 md:py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors whitespace-nowrap"
              title="返回成绩单"
            >
              <ArrowLeft size={14} className="mr-1" />
-             返回成绩单
+             <span className="hidden sm:inline">返回成绩单</span>
+             <span className="sm:hidden">返回</span>
            </button>
          )}
 
          {mode === 'exam' && examState === 'active' && !examSubmitted && (
-           <div className="flex items-center px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-medium border border-purple-100 whitespace-nowrap">
+           <div className="flex items-center px-2 py-1 md:px-3 md:py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-medium border border-purple-100 whitespace-nowrap">
              <Clock size={14} className="mr-1 md:mr-2" />
              {formatTime(timeLeft)}
            </div>
@@ -83,18 +84,27 @@ export default function QuizHeader({
            <button 
              onClick={() => (mode === 'practice' || isReviewing) && onOpenProgress()}
              className={clsx(
-               "text-xs md:text-sm font-medium px-3 py-1 rounded-full transition-all flex items-center",
+               "text-xs md:text-sm font-medium px-2 py-1 md:px-3 md:py-1 rounded-full transition-all flex items-center whitespace-nowrap",
                (mode === 'practice' || isReviewing)
                  ? "bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100" 
                  : "bg-gray-100 text-gray-500"
              )}
            >
              {mode === 'infinite' ? (
-               <span>无尽模式 | 第 {currentQuestionIndex + 1} 题</span>
+               <>
+                 <span className="hidden sm:inline">无尽模式 | 第 {currentQuestionIndex + 1} 题</span>
+                 <span className="sm:hidden">第 {currentQuestionIndex + 1} 题</span>
+               </>
              ) : isReviewing ? (
-               <span>查看答题卡</span>
+               <>
+                 <span className="hidden sm:inline">查看答题卡</span>
+                 <span className="sm:hidden">答题卡</span>
+               </>
              ) : (
-               <span>进度: {currentQuestionIndex + 1} / {currentModuleData?.questions.length}</span>
+               <>
+                 <span className="hidden sm:inline">进度: </span>
+                 <span>{currentQuestionIndex + 1} / {currentModuleData?.questions.length}</span>
+               </>
              )}
              {(mode === 'practice' || isReviewing) && <Search size={12} className="ml-1 opacity-50" />}
            </button>

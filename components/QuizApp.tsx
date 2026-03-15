@@ -183,8 +183,8 @@ export default function QuizApp() {
               variant={notification.type === 'error' ? 'danger' : notification.type === 'success' ? 'info' : 'warning'}
             />
 
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
-              <div className="max-w-3xl mx-auto pb-24">
+            <div className="flex-1 overflow-y-auto p-2 md:p-8 scroll-smooth">
+              <div className="max-w-3xl mx-auto pb-12 md:pb-24">
                 <QuizMain 
                   mode={mode}
                   examState={examState}
