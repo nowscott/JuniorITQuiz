@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Question } from '@/data/types';
 import { Loader2, Sparkles, X, Check, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
@@ -30,6 +30,13 @@ export default function EditQuestionModal({
 }: Props) {
   const [showPreview, setShowPreview] = useState(false);
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(true);
+  const reasoningEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isReasoningExpanded && reasoningEndRef.current) {
+      reasoningEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [reasoningText, isReasoningExpanded]);
 
   if (!isOpen || !question) return null;
 
@@ -167,6 +174,7 @@ export default function EditQuestionModal({
                     <div className="p-3 bg-slate-50 border-t border-indigo-100 max-h-48 overflow-y-auto text-xs text-slate-600 font-mono leading-relaxed whitespace-pre-wrap">
                       {reasoningText}
                       {isGenerating && <span className="animate-pulse inline-block w-1.5 h-3 ml-1 bg-indigo-400 align-middle"></span>}
+                      <div ref={reasoningEndRef} />
                     </div>
                   )}
                 </div>
