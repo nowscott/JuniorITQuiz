@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { CheckCircle, XCircle, Info, Maximize2, Copy, Check } from 'lucide-react';
 import clsx from 'clsx';
@@ -229,8 +231,8 @@ export default function QuestionCard({
       </div>
 
       {/* 题目内容 */}
-      <div className="prose prose-base md:prose-lg max-w-none mb-4 md:mb-8">
-        <h3 className="text-base md:text-2xl font-semibold text-gray-900 leading-relaxed tracking-tight break-words">
+      <div className="prose prose-sm md:prose-lg max-w-none mb-3 md:mb-8">
+        <h3 className="text-sm md:text-2xl font-semibold text-gray-900 leading-relaxed tracking-tight break-words">
           {question.text}
         </h3>
         

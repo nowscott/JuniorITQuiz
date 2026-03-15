@@ -32,18 +32,18 @@ export default function ResultCard({
   };
   
   return (
-    <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-12 text-center max-w-2xl mx-auto mt-6 md:mt-10">
-      <div className="mb-6 md:mb-8">
+    <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-4 md:p-12 text-center max-w-2xl mx-auto mt-4 md:mt-10">
+      <div className="mb-4 md:mb-8">
         {isPass ? (
-          <div className="inline-flex items-center justify-center w-16 h-16 md:w-24 md:h-24 rounded-full bg-green-100 text-green-600 mb-3 md:mb-4 animate-bounce">
-            <Award className="w-8 h-8 md:w-12 md:h-12" />
+          <div className="inline-flex items-center justify-center w-12 h-12 md:w-24 md:h-24 rounded-full bg-green-100 text-green-600 mb-2 md:mb-4 animate-bounce">
+            <Award className="w-6 h-6 md:w-12 md:h-12" />
           </div>
         ) : (
-          <div className="inline-flex items-center justify-center w-16 h-16 md:w-24 md:h-24 rounded-full bg-red-100 text-red-600 mb-3 md:mb-4">
-            <AlertTriangle className="w-8 h-8 md:w-12 md:h-12" />
+          <div className="inline-flex items-center justify-center w-12 h-12 md:w-24 md:h-24 rounded-full bg-red-100 text-red-600 mb-2 md:mb-4">
+            <AlertTriangle className="w-6 h-6 md:w-12 md:h-12" />
           </div>
         )}
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
+        <h2 className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
           {isPass ? '考试通过！' : '还需努力！'}
         </h2>
         <p className="text-sm md:text-base text-gray-500">
