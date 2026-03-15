@@ -109,6 +109,51 @@ export default function QuizMain({
 
   return (
     <div className="space-y-6">
+      {/* 导航按钮移动到题目上方 */}
+      <div className="flex items-center justify-between px-1">
+        <button 
+          onClick={onPrevQuestion}
+          disabled={currentQuestionIndex === 0}
+          className="group flex items-center gap-1 pl-2 pr-4 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-white/80 transition-all disabled:opacity-0 disabled:cursor-not-allowed"
+        >
+          <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center group-hover:border-gray-300 group-hover:shadow-sm transition-all">
+            <ChevronLeft size={16} />
+          </div>
+          <span>上一题</span>
+        </button>
+        
+        {isReviewing ? (
+          <button 
+            onClick={onBackToResult}
+            className="group flex items-center gap-1 pl-4 pr-2 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-white/80 transition-all"
+          >
+            <span>返回成绩单</span>
+            <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center group-hover:border-gray-300 group-hover:shadow-sm transition-all">
+              <ArrowLeft size={16} />
+            </div>
+          </button>
+        ) : mode === 'exam' && !examSubmitted && isLastQuestion ? (
+          <button 
+            onClick={onSubmitExam}
+            className="group flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold bg-gray-900 text-white hover:bg-black shadow-lg shadow-gray-200 transition-all hover:-translate-y-0.5 active:translate-y-0"
+          >
+            <span>提交试卷</span>
+            <CheckCircle size={16} />
+          </button>
+        ) : (
+          <button 
+            onClick={handleNext}
+            disabled={isLastQuestion}
+            className="group flex items-center gap-1 pl-4 pr-2 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-white/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <span>{mode === 'infinite' ? '下一题' : (isLastQuestion ? '已完成' : '下一题')}</span>
+            <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center group-hover:border-gray-300 group-hover:shadow-sm transition-all">
+              <ChevronRight size={16} />
+            </div>
+          </button>
+        )}
+      </div>
+
       <QuestionCard 
         key={currentQuestion.id} 
         question={currentQuestion}
@@ -119,42 +164,6 @@ export default function QuizMain({
         sessionId={examSessionId}
         questionNumber={currentQuestionIndex + 1}
       />
-      
-      {/* 题目下方的导航按钮 */}
-      <div className="flex items-center justify-between gap-4 px-2">
-        <button 
-          onClick={onPrevQuestion}
-          disabled={currentQuestionIndex === 0}
-          className="flex-1 max-w-[160px] px-4 py-3 rounded-2xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-95 shadow-sm"
-        >
-          <ChevronLeft size={18} className="mr-1" /> 上一题
-        </button>
-        
-        {isReviewing ? (
-          <button 
-            onClick={onBackToResult}
-            className="flex-1 max-w-[200px] px-6 py-3 rounded-2xl text-sm font-bold bg-gray-800 text-white hover:bg-gray-900 shadow-lg shadow-gray-200 flex items-center justify-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-          >
-            <ArrowLeft size={18} className="mr-2" /> 返回成绩单
-          </button>
-        ) : mode === 'exam' && !examSubmitted && isLastQuestion ? (
-          <button 
-            onClick={onSubmitExam}
-            className="flex-1 max-w-[200px] px-6 py-3 rounded-2xl text-sm font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200 flex items-center justify-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-          >
-            提交试卷 <CheckCircle size={18} className="ml-2" />
-          </button>
-        ) : (
-          <button 
-            onClick={handleNext}
-            disabled={isLastQuestion}
-            className="flex-1 max-w-[200px] px-6 py-3 rounded-2xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-          >
-            {mode === 'infinite' ? '下一题' : (isLastQuestion ? '已完成' : '下一题')}
-            <ChevronRight size={18} className="ml-1" />
-          </button>
-        )}
-      </div>
     </div>
   );
 }

@@ -252,7 +252,7 @@ export default function QuestionCard({
       </div>
 
       {/* 解析区域 (仅在显示结果时出现) */}
-      {showResult && (mode === 'exam' || userAnswer === question.correctAnswer) && (
+      {showResult && (
         <div className="mt-8 pt-8 border-t border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100">
             <div className="flex items-center justify-between mb-3">
