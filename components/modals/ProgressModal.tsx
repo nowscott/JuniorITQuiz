@@ -26,6 +26,8 @@ export default function ProgressModal({
 }: ProgressModalProps) {
   const wrongQuestionsCount = questions.filter((q) => userAnswers[q.id] !== undefined && userAnswers[q.id] !== q.correctAnswer).length;
 
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
       {/* Overlay */}
