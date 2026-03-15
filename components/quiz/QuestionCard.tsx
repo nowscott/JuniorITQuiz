@@ -212,15 +212,15 @@ export default function QuestionCard({
   }, [handleSelect, handleConfirm, question.options.length]);
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-10 transition-all duration-300 hover:shadow-md">
+    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 md:p-10 transition-all duration-300 hover:shadow-md">
       {/* 题号与标签 */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-3">
-          <span className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shadow-sm">
+      <div className="flex items-center justify-between mb-6 md:mb-8">
+        <div className="flex items-center space-x-2 md:space-x-3">
+          <span className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-base md:text-lg shadow-sm">
             {mode === 'infinite' ? '∞' : (question.examQuestionId || questionNumber || 'Q')}
           </span>
           {question.sourceModuleName && (
-            <span className="px-3 py-1 rounded-full bg-gray-50 text-xs font-medium text-gray-500 border border-gray-100">
+            <span className="px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-gray-50 text-[10px] md:text-xs font-medium text-gray-500 border border-gray-100">
               {question.sourceModuleName}
             </span>
           )}
@@ -229,8 +229,8 @@ export default function QuestionCard({
       </div>
 
       {/* 题目内容 */}
-      <div className="prose prose-lg max-w-none mb-8">
-        <h3 className="text-xl md:text-2xl font-semibold text-gray-900 leading-relaxed tracking-tight">
+      <div className="prose prose-base md:prose-lg max-w-none mb-6 md:mb-8">
+        <h3 className="text-lg md:text-2xl font-semibold text-gray-900 leading-relaxed tracking-tight break-words">
           {question.text}
         </h3>
         
@@ -262,7 +262,7 @@ export default function QuestionCard({
               key={originalIdx} // 使用原始索引作为 key，保持 React 渲染稳定
               onClick={() => handleSelect(shuffledIdx)}
               className={clsx(
-                "w-full relative group p-4 pl-16 rounded-2xl text-left border-2 transition-all duration-200",
+                "w-full relative group p-3 pl-12 md:p-4 md:pl-16 rounded-2xl text-left border-2 transition-all duration-200",
                 status === 'default' && "border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 bg-white",
                 status === 'selected' && "border-blue-500 bg-blue-50/50 shadow-sm ring-1 ring-blue-200",
                 status === 'correct' && "border-green-500 bg-green-50/50 shadow-sm ring-1 ring-green-200",
@@ -271,7 +271,7 @@ export default function QuestionCard({
             >
               {/* 选项标号 - 始终显示 A, B, C, D (对应打乱后的顺序) */}
               <div className={clsx(
-                "absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors",
+                "absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm font-bold transition-colors",
                 status === 'default' && "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600",
                 status === 'selected' && "bg-blue-500 text-white shadow-lg shadow-blue-200",
                 status === 'correct' && "bg-green-500 text-white shadow-lg shadow-green-200",
@@ -282,7 +282,7 @@ export default function QuestionCard({
 
               {/* 选项文字 */}
               <span className={clsx(
-                "block text-base md:text-lg font-medium transition-colors",
+                "block text-sm md:text-lg font-medium transition-colors break-words",
                 status === 'default' && "text-gray-700 group-hover:text-gray-900",
                 status === 'selected' && "text-blue-900",
                 status === 'correct' && "text-green-900",
