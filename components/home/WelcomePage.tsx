@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, GraduationCap, Infinity as InfinityIcon, Sparkles, ChevronRight, RefreshCw, Github } from 'lucide-react';
+import { BookOpen, GraduationCap, Infinity as InfinityIcon, Sparkles, ChevronRight, RefreshCw, Github, Keyboard } from 'lucide-react';
 import { computerTrivia } from '@/data/trivia';
 import pkg from '@/package.json';
 
@@ -141,6 +141,28 @@ export default function WelcomePage({
           <p className={`text-sm text-indigo-800/80 leading-relaxed transition-opacity duration-200 ${isAnimating ? 'opacity-0' : 'opacity-100'}`}>
             {tip}
           </p>
+        </div>
+      </div>
+
+      {/* Keyboard Shortcuts Hint */}
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm text-gray-400 bg-gray-50 px-6 py-3 rounded-full border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+        <div className="flex items-center gap-2">
+          <Keyboard size={16} />
+          <span className="font-medium">快捷键支持：</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <kbd className="px-2 py-0.5 bg-white border border-gray-200 rounded-md text-xs font-sans text-gray-500 shadow-sm">1-4</kbd>
+            <span>选择</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <kbd className="px-2 py-0.5 bg-white border border-gray-200 rounded-md text-xs font-sans text-gray-500 shadow-sm">Enter</kbd>
+            <span>确认</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <kbd className="px-2 py-0.5 bg-white border border-gray-200 rounded-md text-xs font-sans text-gray-500 shadow-sm">← / →</kbd>
+            <span>切换</span>
+          </div>
         </div>
       </div>
 

@@ -68,6 +68,15 @@ export default function QuestionCard({
   // 客户端二次打乱（实现“重温时选项不同”）
   const [clientShuffledIndices, setClientShuffledIndices] = useState<number[] | null>(null);
 
+  // 预选答案状态（本地状态，未提交）
+  const [selectedOption, setSelectedOption] = useState<number | null>(userAnswer);
+
+  // 当外部 userAnswer 更新时，同步到本地 selectedOption
+  // (例如：切题回来，或者提交后状态更新)
+  useEffect(() => {
+    setSelectedOption(userAnswer);
+  }, [userAnswer, question.id]);
+
   useEffect(() => {
     // 仅在重温模式（有 sessionId）下启用二次随机，或者始终启用？
     // 用户需求是：重温考试时，题目一样，但选项顺序要变。
@@ -118,46 +127,89 @@ export default function QuestionCard({
   // 最终使用的索引：优先使用客户端随机后的，否则使用确定性的（SSR/首次渲染）
   const finalIndices = clientShuffledIndices || shuffledIndices;
 
+  // 用户点击选项（只是预选，不提交）
   const handleSelect = (shuffledIdx: number) => {
     // 只有考试模式下，显示结果（交卷后）不能再选
     if (mode === 'exam' && showResult) return;
     
     // 练习模式下，如果做对了，不能再选
-    // 如果做错了，可以继续选
-    const originalIndex = finalIndices[shuffledIdx];
     if (mode !== 'exam' && showResult && userAnswer === question.correctAnswer) return;
 
-    onSelectAnswer(originalIndex);
+    const originalIndex = finalIndices[shuffledIdx];
+    setSelectedOption(originalIndex);
+  };
+
+  // 确认提交答案
+  const handleConfirm = () => {
+    if (selectedOption !== null && selectedOption !== userAnswer) {
+      onSelectAnswer(selectedOption);
+    }
   };
 
   const getOptionStatus = (shuffledIdx: number) => {
     const originalIndex = finalIndices[shuffledIdx];
 
+    // 本地预选状态
+    const isSelected = selectedOption === originalIndex;
+    
+    // 如果还没展示结果（或者还在做题中），只显示选中状态
     if (!showResult) {
-      if (userAnswer === originalIndex) return 'selected';
+      if (isSelected) return 'selected';
       return 'default';
     }
     
     // 如果是考试模式，且已交卷，显示正确答案和用户选择（如果选错）
     if (mode === 'exam') {
       if (originalIndex === question.correctAnswer) return 'correct';
+      // 注意：这里用 userAnswer 而不是 selectedOption，因为考试回顾看的是提交的答案
       if (userAnswer === originalIndex && originalIndex !== question.correctAnswer) return 'incorrect';
       return 'default';
     }
 
     // 练习模式：
-    const isUserCorrect = userAnswer === question.correctAnswer;
-    
-    if (isUserCorrect) {
-      // 答对了，显示绿色
+    // 如果用户提交了答案，且当前选项是正确答案，显示绿色
+    if (userAnswer === question.correctAnswer) {
       if (originalIndex === question.correctAnswer) return 'correct';
     } else {
-      // 答错了，显示红色
+      // 答错了，且当前选项是用户刚才提交的错误答案，显示红色
+      // 如果用户正在重选（selectedOption !== userAnswer），则显示新选中的为蓝色（selected）
+      if (isSelected && selectedOption !== userAnswer) return 'selected';
+      
       if (userAnswer === originalIndex) return 'incorrect';
     }
     
     return 'default';
   };
+
+  // 键盘快捷键支持：数字键 1-4 选择选项，回车键确认
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 避免在输入框中触发
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleConfirm();
+        return;
+      }
+
+      const keyMap: { [key: string]: number } = {
+        '1': 0, '2': 1, '3': 2, '4': 3,
+        'NumPad1': 0, 'NumPad2': 1, 'NumPad3': 2, 'NumPad4': 3
+      };
+
+      if (keyMap[e.key] !== undefined) {
+        const index = keyMap[e.key];
+        // 确保选项存在（有些题目可能只有 2 或 3 个选项）
+        if (index < question.options.length) {
+          handleSelect(index);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSelect, handleConfirm, question.options.length]);
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-10 transition-all duration-300 hover:shadow-md">
@@ -202,7 +254,7 @@ export default function QuestionCard({
       {/* 选项列表 */}
       <div className="space-y-4">
         {(clientShuffledIndices || shuffledIndices).map((originalIdx, shuffledIdx) => {
-          const option = question.options[originalIdx];
+          const option = question.options.map(o => o.replace(/^\s*[A-D][\.\、]\s*/, ''))[originalIdx]; // 临时处理：移除选项可能自带的 A. B. 前缀，因为我们有自己的 A-D 标签
           const status = getOptionStatus(shuffledIdx);
           
           return (
@@ -236,7 +288,7 @@ export default function QuestionCard({
                 status === 'correct' && "text-green-900",
                 status === 'incorrect' && "text-red-900"
               )}>
-                {option}
+                {question.options[originalIdx]}
               </span>
 
               {/* 状态图标 */}
@@ -251,8 +303,20 @@ export default function QuestionCard({
         })}
       </div>
 
+      {/* 确认提交按钮 - 当有未提交的选中项时显示 */}
+      {selectedOption !== null && selectedOption !== userAnswer && (!showResult || mode !== 'exam') && (
+        <div className="mt-6 flex justify-end animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <button
+            onClick={handleConfirm}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+          >
+            确认提交 <span className="text-blue-200 text-xs font-normal ml-1">(Enter)</span>
+          </button>
+        </div>
+      )}
+
       {/* 解析区域 (仅在显示结果时出现) */}
-      {showResult && (mode === 'exam' || userAnswer === question.correctAnswer) && (
+      {showResult && (
         <div className="mt-8 pt-8 border-t border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100">
             <div className="flex items-center justify-between mb-3">
