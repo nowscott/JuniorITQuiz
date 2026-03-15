@@ -127,12 +127,17 @@ export default function QuizMain({
             onNextQuestion();
           }
         }
+      } else if (e.key === 'Enter') {
+        // 在考试模式下，按 Enter 键自动下一题
+        if (mode === 'exam' && !examSubmitted && !isLastQuestion) {
+          onNextQuestion();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentQuestionIndex, mode, currentModuleData, onPrevQuestion, onNextQuestion]);
+  }, [currentQuestionIndex, mode, currentModuleData, onPrevQuestion, onNextQuestion, examSubmitted, isLastQuestion]);
 
   return (
     <div className="space-y-3 md:space-y-6">
@@ -149,17 +154,7 @@ export default function QuizMain({
           <span className="text-xs md:text-sm">上一题</span>
         </button>
         
-        {isReviewing ? (
-          <button 
-            onClick={onBackToResult}
-            className="group flex items-center gap-1 pl-3 pr-1 py-1.5 md:pl-4 md:pr-2 md:py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-white/80 transition-all"
-          >
-            <span className="text-xs md:text-sm">返回成绩单</span>
-            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center group-hover:border-gray-300 group-hover:shadow-sm transition-all">
-              <ArrowLeft size={16} />
-            </div>
-          </button>
-        ) : mode === 'exam' && !examSubmitted && isLastQuestion ? (
+        {mode === 'exam' && !examSubmitted && isLastQuestion ? (
           <button 
             onClick={onSubmitExam}
             className="group flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 rounded-full text-sm font-bold bg-gray-900 text-white hover:bg-black shadow-lg shadow-gray-200 transition-all hover:-translate-y-0.5 active:translate-y-0"

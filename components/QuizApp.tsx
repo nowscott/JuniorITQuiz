@@ -86,6 +86,7 @@ export default function QuizApp() {
         <SettingsView 
           isOpen={isSettingsModalOpen} 
           onClose={() => setIsSettingsModalOpen(false)} 
+          onUpdateConfig={actions.setExamConfig}
           onClearProgress={() => {
             // 清除本地存储
             localStorage.removeItem('quiz_progress_v1');

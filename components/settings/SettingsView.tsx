@@ -9,9 +9,10 @@ interface SettingsViewProps {
   isOpen: boolean;
   onClose: () => void;
   onClearProgress: () => void;
+  onUpdateConfig?: (config: { questionCount: number; timeLimit: number }) => void;
 }
 
-export default function SettingsView({ isOpen, onClose, onClearProgress }: SettingsViewProps) {
+export default function SettingsView({ isOpen, onClose, onClearProgress, onUpdateConfig }: SettingsViewProps) {
   const [tempConfig, setTempConfig] = useState<{ questionCount: number; timeLimit: number }>({ questionCount: 30, timeLimit: 30 });
   const [saving, setSaving] = useState<'idle' | 'success'>('idle');
   const [mounted, setMounted] = useState(false);
@@ -67,6 +68,9 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
     };
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(normalized));
     setTempConfig(normalized);
+    if (onUpdateConfig) {
+      onUpdateConfig(normalized);
+    }
     setSaving('success');
     setTimeout(() => {
       setSaving('idle');
