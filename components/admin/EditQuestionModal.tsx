@@ -31,6 +31,27 @@ export default function EditQuestionModal({
   const [showPreview, setShowPreview] = useState(false);
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
   const reasoningEndRef = useRef<HTMLDivElement>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (isGenerating) {
+      setElapsedTime(0);
+      timerRef.current = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isGenerating]);
 
   useEffect(() => {
     if (isReasoningExpanded && reasoningEndRef.current) {
@@ -133,7 +154,13 @@ export default function EditQuestionModal({
                     {!isGenerating && generateStatus === 'success' && <Check size={14} />}
                     {!isGenerating && generateStatus === 'error' && <XCircle size={14} />}
                     {!isGenerating && generateStatus === 'idle' && <Sparkles size={14} />}
-                    {isGenerating ? 'AI 生成中…' : generateStatus === 'success' ? '已生成' : generateStatus === 'error' ? '生成失败' : 'AI 生成解析'}
+                    {isGenerating 
+                      ? `生成中 (${elapsedTime}s)…` 
+                      : generateStatus === 'success' 
+                        ? `已生成 (${elapsedTime}s)` 
+                        : generateStatus === 'error' 
+                          ? '生成失败' 
+                          : 'AI 生成解析'}
                   </button>
                   <div className="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
                     <button
