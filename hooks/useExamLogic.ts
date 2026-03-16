@@ -4,13 +4,33 @@ import { useQuizState, PROGRESS_STORAGE_KEY } from './useQuizState';
 
 // Helper for seed encoding/decoding
 const encodeSeed = (seed: number, count: number, time: number): string => {
-  const raw = `${seed}-${count}-${time}`;
-  return btoa(raw).replace(/=/g, '');
+  // 使用 36 进制缩短长度，并转为大写更美观
+  return `${seed.toString(36)}-${count.toString(36)}-${time.toString(36)}`.toUpperCase();
 };
 
 const decodeSeed = (encoded: string): { seed: number, count: number, time: number } | null => {
   try {
-    const raw = atob(encoded);
+    // 兼容旧版 Base64 格式
+    let raw = '';
+    if (encoded.includes('-') && !/^[0-9A-Z-]+$/.test(encoded)) {
+       // 可能还是旧格式的明文，或者是 Base64
+       try { raw = atob(encoded); } catch { raw = encoded; }
+    } else if (!encoded.includes('-')) {
+       // 尝试 Base64 解码
+       try { raw = atob(encoded); } catch { return null; }
+    } else {
+       // 新格式：36进制带连字符
+       const parts = encoded.toLowerCase().split('-');
+       if (parts.length === 3) {
+         return {
+           seed: parseInt(parts[0], 36),
+           count: parseInt(parts[1], 36),
+           time: parseInt(parts[2], 36)
+         };
+       }
+       return null;
+    }
+
     const parts = raw.split('-');
     if (parts.length === 3) {
       return {
@@ -131,7 +151,9 @@ export function useExamLogic(
   const startExam = (customSeedString?: string) => {
     const allQuestions = getAllQuestions();
     
-    let seed = Date.now();
+    // 生成一个更短且更随机的种子 (0 - 999,999,999)
+    // 相比 Date.now()，这样生成的种子在 Base36 编码下更短且开头不固定
+    let seed = Math.floor(Math.random() * 1000000000);
     let questionCount = examConfig.questionCount;
     let timeLimit = examConfig.timeLimit;
 
@@ -144,6 +166,7 @@ export function useExamLogic(
           timeLimit = decoded.time;
           setExamConfig({ questionCount, timeLimit });
         } else {
+          // 兼容纯数字种子
           if (/^\d+$/.test(customSeedString)) {
              seed = parseInt(customSeedString);
           } else {
