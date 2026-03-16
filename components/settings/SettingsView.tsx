@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Settings2, ListOrdered, Clock, Save, X, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
 import { SETTINGS_STORAGE_KEY } from '@/hooks/useQuizState';
 import clsx from 'clsx';
@@ -9,11 +9,12 @@ interface SettingsViewProps {
   isOpen: boolean;
   onClose: () => void;
   onClearProgress: () => void;
+  currentConfig: { questionCount: number; timeLimit: number };
   onUpdateConfig?: (config: { questionCount: number; timeLimit: number }) => void;
 }
 
-export default function SettingsView({ isOpen, onClose, onClearProgress, onUpdateConfig }: SettingsViewProps) {
-  const [tempConfig, setTempConfig] = useState<{ questionCount: number; timeLimit: number }>({ questionCount: 30, timeLimit: 30 });
+export default function SettingsView({ isOpen, onClose, onClearProgress, currentConfig, onUpdateConfig }: SettingsViewProps) {
+  const [tempConfig, setTempConfig] = useState<{ questionCount: number; timeLimit: number }>(currentConfig);
   const [saving, setSaving] = useState<'idle' | 'success'>('idle');
   const [mounted, setMounted] = useState(false);
   
@@ -24,30 +25,15 @@ export default function SettingsView({ isOpen, onClose, onClearProgress, onUpdat
   const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 当 modal 打开时，同步当前配置到临时状态
   useEffect(() => {
-    // 使用 setTimeout 将状态更新推迟到下一个 tick，避免同步更新导致的 cascading renders
-    const timer = setTimeout(() => {
-      setMounted(true);
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
+    if (isOpen) {
+      setTempConfig(currentConfig);
+    }
+  }, [isOpen, currentConfig]);
 
   useEffect(() => {
-    // 同样延迟读取 localStorage
-    const timer = setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (typeof parsed?.questionCount === 'number' && typeof parsed?.timeLimit === 'number') {
-              setTempConfig({ questionCount: parsed.questionCount, timeLimit: parsed.timeLimit });
-            }
-          } catch {}
-        }
-      }
-    }, 0);
-    return () => clearTimeout(timer);
+    setMounted(true);
   }, []);
 
   // Handle ESC key to close
@@ -61,23 +47,32 @@ export default function SettingsView({ isOpen, onClose, onClearProgress, onUpdat
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const handleSave = () => {
+  const handleSave = useCallback((config: { questionCount: number; timeLimit: number }) => {
     const normalized = {
-      questionCount: Math.max(1, Math.floor(tempConfig.questionCount || 1)),
-      timeLimit: Math.max(1, Math.floor(tempConfig.timeLimit || 1)),
+      questionCount: Math.max(1, Math.floor(config.questionCount || 1)),
+      timeLimit: Math.max(1, Math.floor(config.timeLimit || 1)),
     };
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(normalized));
-    setTempConfig(normalized);
+    
     if (onUpdateConfig) {
       onUpdateConfig(normalized);
     }
+    
     setSaving('success');
     setTimeout(() => {
       setSaving('idle');
-      // 可选：保存后自动关闭
-      // onClose();
     }, 1200);
-  };
+  }, [onUpdateConfig]);
+
+  // 当 tempConfig 变化时，自动保存（去抖动处理以避免频繁写入）
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const timer = setTimeout(() => {
+      handleSave(tempConfig);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [tempConfig, handleSave, mounted]);
 
   const handlePressStart = () => {
     if (clearStatus === 'cleared') return;
@@ -309,7 +304,7 @@ export default function SettingsView({ isOpen, onClose, onClearProgress, onUpdat
               设置会自动保存
             </div>
             <button
-              onClick={handleSave}
+              onClick={() => handleSave(tempConfig)}
               className={clsx(
                 "px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 shadow-lg transition-all active:scale-95",
                 saving === 'success'

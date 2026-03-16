@@ -40,6 +40,7 @@ export function useQuizState() {
     timeLimit: 30
   });
 
+  const [isHydrated, setIsHydrated] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [infinitePool, setInfinitePool] = useState<Question[]>([]);
 
@@ -57,7 +58,7 @@ export function useQuizState() {
 
   // Load saved state
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (typeof window !== 'undefined') {
       const savedProgress = localStorage.getItem(PROGRESS_STORAGE_KEY);
       if (savedProgress) {
         try {
@@ -73,29 +74,34 @@ export function useQuizState() {
       const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
       if (savedSettings) {
         try {
-          setExamConfig(JSON.parse(savedSettings));
+          const parsed = JSON.parse(savedSettings);
+          if (parsed && typeof parsed === 'object') {
+            setExamConfig(parsed);
+          }
         } catch {
           console.error('解析保存的设置失败');
         }
       }
-    }, 0);
-    return () => clearTimeout(timer);
+      setIsHydrated(true);
+    }
   }, []);
 
   // Save state effects
   useEffect(() => {
-    if (Object.keys(userAnswers).length > 0) {
+    if (isHydrated && Object.keys(userAnswers).length > 0) {
       localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify({
         answers: userAnswers,
         lastModuleId: currentModuleId,
         lastIndex: currentQuestionIndex
       }));
     }
-  }, [userAnswers, currentModuleId, currentQuestionIndex]);
+  }, [userAnswers, currentModuleId, currentQuestionIndex, isHydrated]);
 
   useEffect(() => {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(examConfig));
-  }, [examConfig]);
+    if (isHydrated) {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(examConfig));
+    }
+  }, [examConfig, isHydrated]);
 
   return {
     state: {

@@ -85,6 +85,7 @@ export default function QuizApp() {
         <SettingsView 
           isOpen={isSettingsModalOpen} 
           onClose={() => setIsSettingsModalOpen(false)} 
+          currentConfig={examConfig}
           onUpdateConfig={actions.setExamConfig}
           onClearProgress={() => {
             // 清除本地存储
