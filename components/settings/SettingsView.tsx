@@ -47,32 +47,39 @@ export default function SettingsView({ isOpen, onClose, onClearProgress, current
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const handleSave = useCallback((config: { questionCount: number; timeLimit: number }) => {
+  const handleSave = useCallback((config: { questionCount: number; timeLimit: number }, silent = false) => {
     const normalized = {
       questionCount: Math.max(1, Math.floor(config.questionCount || 1)),
       timeLimit: Math.max(1, Math.floor(config.timeLimit || 1)),
     };
     
-    if (onUpdateConfig) {
+    // 只有在配置真正发生变化时才更新，或者是非静默保存（手动点击）
+    const isChanged = normalized.questionCount !== currentConfig.questionCount || normalized.timeLimit !== currentConfig.timeLimit;
+    
+    if (isChanged && onUpdateConfig) {
       onUpdateConfig(normalized);
     }
     
-    setSaving('success');
-    setTimeout(() => {
-      setSaving('idle');
-    }, 1200);
-  }, [onUpdateConfig]);
+    // 如果是手动保存（非静默），或者已经发生变化，则显示保存成功状态
+    if (!silent) {
+      setSaving('success');
+      const timer = setTimeout(() => {
+        setSaving('idle');
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [onUpdateConfig, currentConfig.questionCount, currentConfig.timeLimit]);
 
   // 当 tempConfig 变化时，自动保存（去抖动处理以避免频繁写入）
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !isOpen) return;
     
     const timer = setTimeout(() => {
-      handleSave(tempConfig);
-    }, 500);
+      handleSave(tempConfig, true); // 静默保存
+    }, 800);
     
     return () => clearTimeout(timer);
-  }, [tempConfig, handleSave, mounted]);
+  }, [tempConfig, handleSave, mounted, isOpen]);
 
   const handlePressStart = () => {
     if (clearStatus === 'cleared') return;
