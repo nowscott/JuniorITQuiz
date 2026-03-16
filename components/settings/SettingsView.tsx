@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Settings2, ListOrdered, Clock, Save, X, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
-import { SETTINGS_STORAGE_KEY } from '@/hooks/useQuizState';
 import clsx from 'clsx';
 
 interface SettingsViewProps {
@@ -16,7 +15,6 @@ interface SettingsViewProps {
 export default function SettingsView({ isOpen, onClose, onClearProgress, currentConfig, onUpdateConfig }: SettingsViewProps) {
   const [tempConfig, setTempConfig] = useState<{ questionCount: number; timeLimit: number }>(currentConfig);
   const [saving, setSaving] = useState<'idle' | 'success'>('idle');
-  const [mounted, setMounted] = useState(false);
   
   // Long press logic for clearing data
   const [isPressing, setIsPressing] = useState(false);
@@ -24,17 +22,6 @@ export default function SettingsView({ isOpen, onClose, onClearProgress, current
   const [clearStatus, setClearStatus] = useState<'idle' | 'cleared'>('idle');
   const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // 当 modal 打开时，同步当前配置到临时状态
-  useEffect(() => {
-    if (isOpen) {
-      setTempConfig(currentConfig);
-    }
-  }, [isOpen, currentConfig]);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Handle ESC key to close
   useEffect(() => {
@@ -72,14 +59,14 @@ export default function SettingsView({ isOpen, onClose, onClearProgress, current
 
   // 当 tempConfig 变化时，自动保存（去抖动处理以避免频繁写入）
   useEffect(() => {
-    if (!mounted || !isOpen) return;
+    if (!isOpen) return;
     
     const timer = setTimeout(() => {
       handleSave(tempConfig, true); // 静默保存
     }, 800);
     
     return () => clearTimeout(timer);
-  }, [tempConfig, handleSave, mounted, isOpen]);
+  }, [tempConfig, handleSave, isOpen]);
 
   const handlePressStart = () => {
     if (clearStatus === 'cleared') return;
@@ -129,8 +116,6 @@ export default function SettingsView({ isOpen, onClose, onClearProgress, current
     setIsPressing(false);
     setProgress(0);
   };
-
-  if (!mounted) return null;
 
   return (
     <>
