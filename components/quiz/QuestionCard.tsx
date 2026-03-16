@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { CheckCircle, XCircle, Info, Maximize2, Copy, Check } from 'lucide-react';
 import clsx from 'clsx';
 import { type Question } from '@/data/questions';
@@ -130,7 +130,7 @@ export default function QuestionCard({
   const finalIndices = clientShuffledIndices || shuffledIndices;
 
   // 用户点击选项（只是预选，不提交）
-  const handleSelect = (shuffledIdx: number) => {
+  const handleSelect = useCallback((shuffledIdx: number) => {
     // 只有考试模式下，显示结果（交卷后）不能再选
     if (mode === 'exam' && showResult) return;
     
@@ -139,14 +139,14 @@ export default function QuestionCard({
 
     const originalIndex = finalIndices[shuffledIdx];
     setSelectedOption(originalIndex);
-  };
+  }, [mode, showResult, userAnswer, question.correctAnswer, finalIndices]);
 
   // 确认提交答案
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     if (selectedOption !== null && selectedOption !== userAnswer) {
       onSelectAnswer(selectedOption);
     }
-  };
+  }, [selectedOption, userAnswer, onSelectAnswer]);
 
   const getOptionStatus = (shuffledIdx: number) => {
     const originalIndex = finalIndices[shuffledIdx];
@@ -290,7 +290,7 @@ export default function QuestionCard({
                 status === 'correct' && "text-green-900",
                 status === 'incorrect' && "text-red-900"
               )}>
-                {question.options[originalIdx]}
+                {option}
               </span>
 
               {/* 状态图标 */}
@@ -305,14 +305,26 @@ export default function QuestionCard({
         })}
       </div>
 
-      {/* 确认提交按钮 - 当有未提交的选中项时显示 */}
-      {selectedOption !== null && selectedOption !== userAnswer && (!showResult || mode !== 'exam') && (
-        <div className="mt-6 flex justify-end animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {/* 确认提交按钮 - 默认展示为灰色禁用状态，选中后变为蓝色 */}
+      {(!showResult || (mode !== 'exam' && userAnswer !== question.correctAnswer)) && (
+        <div className="mt-4 md:mt-8 flex justify-end">
           <button
             onClick={handleConfirm}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+            disabled={selectedOption === null || selectedOption === userAnswer}
+            className={clsx(
+              "flex items-center gap-1.5 md:gap-2 px-5 py-2.5 md:px-7 md:py-3.5 rounded-xl md:rounded-2xl font-bold transition-all duration-200",
+              (selectedOption === null || selectedOption === userAnswer)
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 shadow-none"
+                : "bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 active:translate-y-0"
+            )}
           >
-            确认提交 <span className="text-blue-200 text-xs font-normal ml-1">(Enter)</span>
+            <span className="text-sm md:text-base">确认提交</span>
+            <span className={clsx(
+              "text-[10px] md:text-xs font-normal ml-0.5 hidden sm:inline",
+              (selectedOption === null || selectedOption === userAnswer) ? "text-gray-300" : "text-blue-100"
+            )}>
+              (Enter)
+            </span>
           </button>
         </div>
       )}

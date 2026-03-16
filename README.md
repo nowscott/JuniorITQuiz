@@ -43,6 +43,8 @@
 
 ## 🚀 快速开始
 
+> Node.js 版本要求：`20.x`
+
 1.  **克隆项目**：
     ```bash
     git clone https://github.com/your-username/junior-it-quiz.git
@@ -54,6 +56,14 @@
     npm install
     ```
 
+3.  **（可选）配置环境变量**：
+    - 管理后台的“解析生成”功能依赖通义千问兼容接口（DashScope）
+    - 在项目根目录创建 `.env.local`：
+      ```bash
+      DASHSCOPE_API_KEY=你的密钥
+      ```
+    - 未配置密钥时，解析生成功能会自动禁用，不影响刷题与考试功能
+
 3.  **启动开发服务器**：
     ```bash
     npm run dev
@@ -62,6 +72,13 @@
 4.  **访问应用**：
     打开浏览器访问 [http://localhost:3000](http://localhost:3000)。
 
+## ✅ 质量检查
+
+```bash
+npm run lint
+npm run build
+```
+
 ## 📂 目录结构
 
 ```
@@ -69,7 +86,8 @@ junior-it-quiz/
 ├── app/                  # Next.js App Router 路由和页面
 │   ├── admin/            # 管理后台页面
 │   ├── api/              # API 路由 (处理题目数据)
-│   └── page.tsx          # 应用入口
+│   ├── HomeClient.tsx    # 客户端入口（承载 QuizApp）
+│   └── page.tsx          # Server Component 入口（渲染 HomeClient）
 ├── components/           # React UI 组件
 │   ├── home/             # 首页组件 (WelcomePage)
 │   ├── layout/           # 布局组件 (Sidebar)
@@ -91,6 +109,12 @@ junior-it-quiz/
 - **图片资源**：题目图片存放于 `public/images/moduleX/` 目录下，引用路径如 `/images/module1/1-162.png`。
 - **管理功能**：在开发模式 (`npm run dev`) 下，访问 `/admin` 可以图形化地添加、修改和删除题目。
 - **生产环境**：在 Vercel 等平台部署时，文件系统通常是只读的，因此管理功能仅用于本地开发和数据维护。
+
+## 🧱 代码结构说明
+
+- 页面入口：`app/page.tsx` 为 Server Component，实际交互 UI 由 `app/HomeClient.tsx`（Client Component）渲染，以承载 `QuizApp`。
+- 状态与逻辑：全局状态由 `hooks/useQuizState.ts` 维护，业务流程由 `hooks/useExamLogic.ts` 处理，派生选择器在 `hooks/useQuizSelectors.ts` 中集中。
+- UI 编排：`components/QuizApp.tsx` 作为编排层，弹窗/设置/确认框等 overlay 统一在 `components/QuizOverlays.tsx` 中管理，避免单文件过长与冗余。
 
 ## 📄 开源协议
 

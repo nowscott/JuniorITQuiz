@@ -1,5 +1,5 @@
-import QuizApp from '@/components/QuizApp';
+import HomeClient from './HomeClient';
 
 export default function Home() {
-  return <QuizApp />;
+  return <HomeClient />;
 }
