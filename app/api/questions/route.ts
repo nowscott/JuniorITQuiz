@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import questionsDefault from '@/data/questions.json';
+import { questionData as questionsDefault } from '@/data/questions';
 
-const questionsFilePath = path.join(process.cwd(), 'data', 'questions.json');
+const questionsDirPath = path.join(process.cwd(), 'data', 'question-bank');
+const questionsIndexPath = path.join(process.cwd(), 'data', 'questions.ts');
+const moduleFileNamePattern = /^[A-Za-z0-9_-]+$/;
 
 export const runtime = 'nodejs';
 
@@ -33,12 +35,79 @@ function isLocalDevelopmentRequest(request: Request) {
   }
 }
 
+function getModuleFilePath(moduleId: string) {
+  if (!moduleFileNamePattern.test(moduleId)) {
+    throw new Error('模块 ' + moduleId + ' 不能作为文件名');
+  }
+
+  return path.join(questionsDirPath, moduleId + '.json');
+}
+
+function readQuestionsDataFromFiles() {
+  const entries = fs
+    .readdirSync(questionsDirPath)
+    .filter(fileName => fileName.endsWith('.json'))
+    .sort();
+
+  return entries.reduce<Record<string, unknown>>((data, fileName) => {
+    const moduleId = path.basename(fileName, '.json');
+    const modulePath = path.join(questionsDirPath, fileName);
+    data[moduleId] = JSON.parse(fs.readFileSync(modulePath, 'utf-8'));
+    return data;
+  }, {});
+}
+
+function writeQuestionsDataToFiles(data: Record<string, unknown>) {
+  fs.mkdirSync(questionsDirPath, { recursive: true });
+
+  const activeFileNames = new Set<string>();
+  const moduleIds = Object.keys(data);
+  for (const [moduleId, moduleData] of Object.entries(data)) {
+    const fileName = moduleId + '.json';
+    activeFileNames.add(fileName);
+    fs.writeFileSync(getModuleFilePath(moduleId), JSON.stringify(moduleData, null, 2) + '\n', 'utf-8');
+  }
+
+  for (const fileName of fs.readdirSync(questionsDirPath)) {
+    if (fileName.endsWith('.json') && !activeFileNames.has(fileName)) {
+      fs.unlinkSync(path.join(questionsDirPath, fileName));
+    }
+  }
+
+  writeQuestionsIndex(moduleIds);
+}
+
+function writeQuestionsIndex(moduleIds: string[]) {
+  const imports = moduleIds.map((moduleId, index) =>
+    'import moduleData' + index + " from './question-bank/" + moduleId + ".json';"
+  );
+  const entries = moduleIds.map((moduleId, index) =>
+    '  ' + JSON.stringify(moduleId) + ': moduleData' + index + ' as ModuleData'
+  );
+
+  const source = [
+    "import type { ModuleData } from './types';",
+    ...imports,
+    '',
+    'export const questionData: Record<string, ModuleData> = {',
+    entries.join(',\n'),
+    '};',
+    ''
+  ].join('\n');
+
+  fs.writeFileSync(questionsIndexPath, source, 'utf-8');
+}
+
 function validateQuestionsData(data: unknown): string | null {
   if (typeof data !== 'object' || data === null || Array.isArray(data)) {
     return '题库数据必须是模块对象';
   }
 
   for (const [moduleId, moduleData] of Object.entries(data)) {
+    if (!moduleFileNamePattern.test(moduleId)) {
+      return '模块 ' + moduleId + ' 不能作为文件名';
+    }
+
     if (typeof moduleData !== 'object' || moduleData === null || Array.isArray(moduleData)) {
       return `模块 ${moduleId} 格式无效`;
     }
@@ -97,8 +166,7 @@ function validateQuestionsData(data: unknown): string | null {
 
 export async function GET() {
   try {
-    const data = fs.readFileSync(questionsFilePath, 'utf-8');
-    return NextResponse.json(JSON.parse(data));
+    return NextResponse.json(readQuestionsDataFromFiles());
   } catch {
     // 在无状态/只读的部署环境（如 Vercel Serverless）中，直接回退到随包发布的数据
     return NextResponse.json(questionsDefault);
@@ -122,8 +190,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    // 写入文件
-    fs.writeFileSync(questionsFilePath, JSON.stringify(body, null, 2), 'utf-8');
+    writeQuestionsDataToFiles(body);
     
     return NextResponse.json({ success: true, message: '题目更新成功' });
   } catch (error) {

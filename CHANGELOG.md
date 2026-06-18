@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.17] - 2026-06-18
+
+### Added
+
+- Added `npm run validate:questions` to validate split question-bank JSON files, duplicate question IDs, answer indexes, and local image paths.
+
+### Changed
+
+- Split the monolithic `data/questions.json` into per-module files under `data/question-bank/`, with `data/questions.ts` retained as the unified app data export.
+- Updated the local development question API to read and write module-level JSON files while rejecting unsafe module file names.
+- Expanded and corrected image-question explanations so all image-based questions have detailed, image-aware explanations.
+
+### Documentation
+
+- Updated README quality-check and data-management docs for the split question-bank layout.
+
 ## [1.1.15] - 2026-06-18
 
 ### Fixed

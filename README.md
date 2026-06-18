@@ -75,6 +75,7 @@
 ## ✅ 质量检查
 
 ```bash
+npm run validate:questions
 npm run lint
 npm run build
 ```
@@ -95,7 +96,8 @@ junior-it-quiz/
 │   ├── quiz/             # 答题核心组件 (QuestionCard, ResultCard 等)
 │   └── settings/         # 设置相关组件 (SettingsView)
 ├── data/                 # 题库数据
-│   ├── questions.json    # 题目数据源 (JSON 格式)
+│   ├── question-bank/    # 按模块拆分的题目数据源 (module1.json...)
+│   ├── questions.ts      # 题库统一导出入口
 │   └── types.ts          # TypeScript 类型定义
 ├── hooks/                # 自定义 React Hooks (状态管理、逻辑处理)
 ├── public/               # 静态资源
@@ -105,8 +107,9 @@ junior-it-quiz/
 
 ## 📝 数据管理
 
-- **题库文件**：主要数据存储在 `data/questions.json` 中。
+- **题库文件**：题目数据按模块存储在 `data/question-bank/moduleX.json` 中，应用通过 `data/questions.ts` 统一读取。
 - **图片资源**：题目图片存放于 `public/images/moduleX/` 目录下，引用路径如 `/images/module1/1-162.png`。
+- **题库校验**：修改题库后建议运行 `npm run validate:questions`，检查 JSON 结构、重复题目 ID、答案索引和图片路径。
 - **管理功能**：在开发模式 (`npm run dev`) 下，访问 `/admin` 可以图形化地添加、修改和删除题目。
 - **生产环境**：在 Vercel 等平台部署时，文件系统通常是只读的，因此管理功能仅用于本地开发和数据维护。
 
