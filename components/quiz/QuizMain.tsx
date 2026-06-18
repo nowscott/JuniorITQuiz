@@ -82,11 +82,6 @@ export default function QuizMain({
             onNextQuestion();
           }
         }
-      } else if (e.key === 'Enter') {
-        // 在考试模式下，按 Enter 键自动下一题
-        if (mode === 'exam' && !examSubmitted && !isLastQuestion) {
-          onNextQuestion();
-        }
       }
     };
 

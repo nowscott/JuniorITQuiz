@@ -7,6 +7,94 @@ const questionsFilePath = path.join(process.cwd(), 'data', 'questions.json');
 
 export const runtime = 'nodejs';
 
+const localHostnames = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+function getHostnameFromHostHeader(host: string) {
+  if (host.startsWith('[')) {
+    return host.slice(0, host.indexOf(']') + 1);
+  }
+
+  return host.split(':')[0];
+}
+
+function isLocalDevelopmentRequest(request: Request) {
+  if (process.env.NODE_ENV !== 'development') return false;
+
+  const host = request.headers.get('host');
+  if (host) {
+    return localHostnames.has(getHostnameFromHostHeader(host));
+  }
+
+  try {
+    const url = new URL(request.url);
+    return localHostnames.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function validateQuestionsData(data: unknown): string | null {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    return '题库数据必须是模块对象';
+  }
+
+  for (const [moduleId, moduleData] of Object.entries(data)) {
+    if (typeof moduleData !== 'object' || moduleData === null || Array.isArray(moduleData)) {
+      return `模块 ${moduleId} 格式无效`;
+    }
+
+    const moduleRecord = moduleData as Record<string, unknown>;
+    if (typeof moduleRecord.title !== 'string' || moduleRecord.title.trim().length === 0) {
+      return `模块 ${moduleId} 缺少标题`;
+    }
+
+    if (!Array.isArray(moduleRecord.questions)) {
+      return `模块 ${moduleId} 缺少题目列表`;
+    }
+
+    for (const [index, questionData] of moduleRecord.questions.entries()) {
+      const questionLabel = `${moduleId} 第 ${index + 1} 题`;
+
+      if (typeof questionData !== 'object' || questionData === null || Array.isArray(questionData)) {
+        return `${questionLabel} 格式无效`;
+      }
+
+      const question = questionData as Record<string, unknown>;
+      if (typeof question.id !== 'string' || question.id.trim().length === 0) {
+        return `${questionLabel} 缺少 ID`;
+      }
+
+      if (typeof question.text !== 'string' || question.text.trim().length === 0) {
+        return `${questionLabel} 缺少题干`;
+      }
+
+      const options = question.options;
+      if (!Array.isArray(options) || options.length < 2 || !options.every(option => typeof option === 'string')) {
+        return `${questionLabel} 选项格式无效`;
+      }
+
+      const correctAnswer = question.correctAnswer;
+      if (typeof correctAnswer !== 'number' || !Number.isInteger(correctAnswer) || correctAnswer < 0 || correctAnswer >= options.length) {
+        return `${questionLabel} 正确答案索引无效`;
+      }
+
+      if (typeof question.explanation !== 'string') {
+        return `${questionLabel} 缺少解析`;
+      }
+
+      if (question.image !== undefined && typeof question.image !== 'string') {
+        return `${questionLabel} 题目图片路径无效`;
+      }
+
+      if (question.explanationImage !== undefined && typeof question.explanationImage !== 'string') {
+        return `${questionLabel} 解析图片路径无效`;
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function GET() {
   try {
     const data = fs.readFileSync(questionsFilePath, 'utf-8');
@@ -19,9 +107,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   // 限制仅在本地开发环境允许写入文件
-  if (process.env.NODE_ENV !== 'development') {
+  if (!isLocalDevelopmentRequest(request)) {
     return NextResponse.json(
-      { error: '仅允许在本地开发环境中修改数据。在 Vercel 环境下，文件系统是只读的。' }, 
+      { error: '仅允许从本机开发环境修改数据。' },
       { status: 403 }
     );
   }
@@ -29,9 +117,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // 简单的验证，确保数据是对象
-    if (typeof body !== 'object' || body === null) {
-      return NextResponse.json({ error: '无效的数据格式' }, { status: 400 });
+    const validationError = validateQuestionsData(body);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     // 写入文件

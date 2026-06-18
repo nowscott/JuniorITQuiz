@@ -45,6 +45,20 @@ const decodeSeed = (encoded: string): { seed: number, count: number, time: numbe
   }
 };
 
+const isValidExamSeed = (config: { seed: number; count: number; time: number }) => {
+  return Number.isSafeInteger(config.seed) &&
+    config.seed >= 0 &&
+    Number.isSafeInteger(config.count) &&
+    config.count >= 1 &&
+    Number.isSafeInteger(config.time) &&
+    config.time >= 1;
+};
+
+const normalizeExamConfig = (config: { questionCount: number; timeLimit: number }) => ({
+  questionCount: Math.max(1, Math.floor(Number.isFinite(config.questionCount) ? config.questionCount : 1)),
+  timeLimit: Math.max(1, Math.floor(Number.isFinite(config.timeLimit) ? config.timeLimit : 1))
+});
+
 export function useExamLogic(
   state: ReturnType<typeof useQuizState>['state'],
   actions: ReturnType<typeof useQuizState>['actions']
@@ -150,17 +164,23 @@ export function useExamLogic(
 
   const startExam = (customSeedString?: string) => {
     const allQuestions = getAllQuestions();
+    if (allQuestions.length === 0) {
+      showNotification('无法开始考试', '题库为空，请先添加题目后再开始考试。', 'error');
+      return;
+    }
     
     // 生成一个更短且更随机的种子 (0 - 999,999,999)
     // 相比 Date.now()，这样生成的种子在 Base36 编码下更短且开头不固定
     let seed = Math.floor(Math.random() * 1000000000);
-    let questionCount = examConfig.questionCount;
-    let timeLimit = examConfig.timeLimit;
+    let { questionCount, timeLimit } = normalizeExamConfig(examConfig);
 
     if (customSeedString) {
       try {
         const decoded = decodeSeed(customSeedString);
         if (decoded) {
+          if (!isValidExamSeed(decoded)) {
+            throw new Error('Invalid seed values');
+          }
           seed = decoded.seed;
           questionCount = decoded.count;
           timeLimit = decoded.time;
@@ -169,6 +189,9 @@ export function useExamLogic(
           // 兼容纯数字种子
           if (/^\d+$/.test(customSeedString)) {
              seed = parseInt(customSeedString);
+             if (!Number.isSafeInteger(seed)) {
+               throw new Error('Invalid numeric seed');
+             }
           } else {
              throw new Error('Invalid seed format');
           }
@@ -178,6 +201,8 @@ export function useExamLogic(
         showNotification('无效的种子', '输入的种子格式不正确或已损坏。请检查后重试，或直接点击“开始答题”生成新试卷。', 'error');
         return;
       }
+    } else {
+      setExamConfig({ questionCount, timeLimit });
     }
 
     setExamSessionId(seed);
