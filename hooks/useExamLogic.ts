@@ -1,63 +1,15 @@
 import { useMemo, useEffect, useCallback } from 'react';
-import { questionData, type Question, type ModuleData } from '@/data/questions';
 import { useQuizState, PROGRESS_STORAGE_KEY } from './useQuizState';
-
-// Helper for seed encoding/decoding
-const encodeSeed = (seed: number, count: number, time: number): string => {
-  // 使用 36 进制缩短长度，并转为大写更美观
-  return `${seed.toString(36)}-${count.toString(36)}-${time.toString(36)}`.toUpperCase();
-};
-
-const decodeSeed = (encoded: string): { seed: number, count: number, time: number } | null => {
-  try {
-    // 兼容旧版 Base64 格式
-    let raw = '';
-    if (encoded.includes('-') && !/^[0-9A-Z-]+$/.test(encoded)) {
-       // 可能还是旧格式的明文，或者是 Base64
-       try { raw = atob(encoded); } catch { raw = encoded; }
-    } else if (!encoded.includes('-')) {
-       // 尝试 Base64 解码
-       try { raw = atob(encoded); } catch { return null; }
-    } else {
-       // 新格式：36进制带连字符
-       const parts = encoded.toLowerCase().split('-');
-       if (parts.length === 3) {
-         return {
-           seed: parseInt(parts[0], 36),
-           count: parseInt(parts[1], 36),
-           time: parseInt(parts[2], 36)
-         };
-       }
-       return null;
-    }
-
-    const parts = raw.split('-');
-    if (parts.length === 3) {
-      return {
-        seed: parseInt(parts[0]),
-        count: parseInt(parts[1]),
-        time: parseInt(parts[2])
-      };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-};
-
-const isValidExamSeed = (config: { seed: number; count: number; time: number }) => {
-  return Number.isSafeInteger(config.seed) &&
-    config.seed >= 0 &&
-    Number.isSafeInteger(config.count) &&
-    config.count >= 1 &&
-    Number.isSafeInteger(config.time) &&
-    config.time >= 1;
-};
-
-const normalizeExamConfig = (config: { questionCount: number; timeLimit: number }) => ({
-  questionCount: Math.max(1, Math.floor(Number.isFinite(config.questionCount) ? config.questionCount : 1)),
-  timeLimit: Math.max(1, Math.floor(Number.isFinite(config.timeLimit) ? config.timeLimit : 1))
-});
+import { useExamTimer } from './useExamTimer';
+import {
+  calculateExamResult,
+  createExamQuestions,
+  encodeExamSeed,
+  getAllQuestions,
+  getModeModuleData,
+  resolveExamConfig,
+  shuffleQuestions
+} from '@/utils/exam';
 
 export function useExamLogic(
   state: ReturnType<typeof useQuizState>['state'],
@@ -86,37 +38,13 @@ export function useExamLogic(
     setNotification(prev => ({ ...prev, isOpen: false }));
   }, [setNotification]);
 
-  // Data helpers
-  const getAllQuestions = useCallback(() => {
-    const allQuestions: Question[] = [];
-    Object.entries(questionData).forEach(([modId, modData]) => {
-      modData.questions.forEach(q => {
-        allQuestions.push({
-          ...q,
-          sourceModule: modId,
-          sourceModuleName: modData.title.split('、')[1] || modData.title
-        });
-      });
-    });
-    return allQuestions;
-  }, []);
-
   const currentModuleData = useMemo(() => {
-    if (mode === 'exam') {
-      return {
-        title: '随机综合考试',
-        questions: examQuestions,
-        moduleTag: '综合考试'
-      } as ModuleData;
-    }
-    if (mode === 'infinite') {
-      return {
-        title: '随机无尽模式',
-        questions: infiniteQuestions,
-        moduleTag: '无尽模式'
-      } as ModuleData;
-    }
-    return questionData[currentModuleId] || { title: '未找到模块', questions: [] };
+    return getModeModuleData({
+      mode,
+      currentModuleId,
+      examQuestions,
+      infiniteQuestions
+    });
   }, [currentModuleId, mode, examQuestions, infiniteQuestions]);
 
   const currentQuestion = currentModuleData?.questions[currentQuestionIndex];
@@ -169,64 +97,19 @@ export function useExamLogic(
       return;
     }
     
-    // 生成一个更短且更随机的种子 (0 - 999,999,999)
-    // 相比 Date.now()，这样生成的种子在 Base36 编码下更短且开头不固定
-    let seed = Math.floor(Math.random() * 1000000000);
-    let { questionCount, timeLimit } = normalizeExamConfig(examConfig);
-
-    if (customSeedString) {
-      try {
-        const decoded = decodeSeed(customSeedString);
-        if (decoded) {
-          if (!isValidExamSeed(decoded)) {
-            throw new Error('Invalid seed values');
-          }
-          seed = decoded.seed;
-          questionCount = decoded.count;
-          timeLimit = decoded.time;
-          setExamConfig({ questionCount, timeLimit });
-        } else {
-          // 兼容纯数字种子
-          if (/^\d+$/.test(customSeedString)) {
-             seed = parseInt(customSeedString);
-             if (!Number.isSafeInteger(seed)) {
-               throw new Error('Invalid numeric seed');
-             }
-          } else {
-             throw new Error('Invalid seed format');
-          }
-        }
-      } catch {
-        console.error('种子解析失败');
-        showNotification('无效的种子', '输入的种子格式不正确或已损坏。请检查后重试，或直接点击“开始答题”生成新试卷。', 'error');
-        return;
-      }
-    } else {
-      setExamConfig({ questionCount, timeLimit });
+    const resolvedConfig = resolveExamConfig(customSeedString, examConfig);
+    if (!resolvedConfig) {
+      console.error('种子解析失败');
+      showNotification('无效的种子', '输入的种子格式不正确或已损坏。请检查后重试，或直接点击“开始答题”生成新试卷。', 'error');
+      return;
     }
 
+    const { seed, questionCount, timeLimit } = resolvedConfig;
+    setExamConfig({ questionCount, timeLimit });
     setExamSessionId(seed);
-    setExamSeedString(encodeSeed(seed, questionCount, timeLimit));
-
-    const seededRandom = (s: number) => {
-      let localSeed = s;
-      return () => {
-        localSeed = (localSeed * 9301 + 49297) % 233280;
-        return localSeed / 233280;
-      };
-    };
+    setExamSeedString(encodeExamSeed(seed, questionCount, timeLimit));
     
-    const rng = seededRandom(seed);
-    const count = Math.min(questionCount, allQuestions.length);
-    const newExamQuestions = [...allQuestions]
-      .sort(() => rng() - 0.5)
-      .slice(0, count)
-      .map((q, i) => ({
-        ...q,
-        examQuestionId: i + 1
-      }));
-    
-    setExamQuestions(newExamQuestions);
+    setExamQuestions(createExamQuestions(allQuestions, seed, questionCount));
     setExamState('active');
     setCurrentQuestionIndex(0);
     setUserAnswers(prev => ({ ...prev, 'exam': {} }));
@@ -251,22 +134,16 @@ export function useExamLogic(
     performSubmit();
   }, [setSubmitConfirmOpen, performSubmit]);
 
-  // Timer logic
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isExamActive && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            submitExam(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [isExamActive, timeLeft, setTimeLeft, submitExam]);
+  const submitExpiredExam = useCallback(() => {
+    submitExam(true);
+  }, [submitExam]);
+
+  useExamTimer({
+    isActive: isExamActive,
+    timeLeft,
+    setTimeLeft,
+    onExpire: submitExpiredExam
+  });
 
   // Infinite mode logic
   const startInfinite = () => {
@@ -290,10 +167,9 @@ export function useExamLogic(
 
   useEffect(() => {
     if (mode === 'infinite' && infinitePool.length === 0) {
-      const pool = getAllQuestions();
-      setInfinitePool(pool.sort(() => Math.random() - 0.5));
+      setInfinitePool(shuffleQuestions(getAllQuestions()));
     }
-  }, [mode, infinitePool.length, getAllQuestions, setInfinitePool]);
+  }, [mode, infinitePool.length, setInfinitePool]);
 
   const handleNextQuestion = () => {
     if (mode === 'infinite') {
@@ -305,12 +181,10 @@ export function useExamLogic(
         setCurrentQuestionIndex(prev => prev + 1);
         
         if (infinitePool.length <= 1) {
-           const newPool = getAllQuestions();
-           setInfinitePool(newPool.sort(() => Math.random() - 0.5));
+           setInfinitePool(shuffleQuestions(getAllQuestions()));
         }
       } else {
-        const newPool = getAllQuestions();
-        setInfinitePool(newPool.sort(() => Math.random() - 0.5));
+        setInfinitePool(shuffleQuestions(getAllQuestions()));
       }
     } else {
       setCurrentQuestionIndex(prev => Math.min((currentModuleData?.questions.length || 1) - 1, prev + 1));
@@ -359,19 +233,7 @@ export function useExamLogic(
     showNotification('清理完成', '已清空所有进度', 'success');
   };
 
-  // Result calculation
-  // Simplified to avoid React Compiler "Expected static flag was missing" error with useMemo + early return
-  const examResult = (() => {
-    if (!examQuestions.length) return { score: 0, correct: 0 };
-    let correct = 0;
-    examQuestions.forEach((q) => {
-      if (userAnswers['exam']?.[q.id] === q.correctAnswer) correct++;
-    });
-    return {
-      score: Math.round((correct / examQuestions.length) * 100),
-      correct
-    };
-  })();
+  const examResult = calculateExamResult(examQuestions, userAnswers['exam']);
 
   return {
     handlers: {

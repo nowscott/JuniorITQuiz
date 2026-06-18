@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
-import { Question, ModuleData } from '@/data/questions';
 import { AppMode, ExamState, ExamConfig } from '@/hooks/useQuizState';
+import type { ModuleData, Question } from '@/data/types';
 import { formatTime } from '@/utils/format';
 import QuestionCard from './QuestionCard';
 import ResultCard from './ResultCard';

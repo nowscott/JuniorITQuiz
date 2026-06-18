@@ -2,8 +2,8 @@
 
 import { CheckCircle, ArrowLeft, Clock, Search, Menu } from 'lucide-react';
 import clsx from 'clsx';
-import { ModuleData } from '@/data/questions';
 import { AppMode, ExamState } from '@/hooks/useQuizState';
+import type { ModuleData } from '@/data/types';
 import { formatTime } from '@/utils/format';
 
 interface QuizHeaderProps {

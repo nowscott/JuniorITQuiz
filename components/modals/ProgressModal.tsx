@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, CheckCircle2, XCircle } from 'lucide-react';
-import { type Question } from '@/data/questions';
+import type { Question } from '@/data/types';
 import clsx from 'clsx';
 
 interface ProgressModalProps {

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { AppMode } from './useQuizState';
-import type { Question } from '@/data/questions';
+import type { Question } from '@/data/types';
 
 type UserAnswers = Record<string, Record<string, number>>;
 
@@ -33,4 +33,3 @@ export function useQuizSelectors(params: {
     };
   }, [mode, currentModuleId, currentQuestion?.id, userAnswers, examSubmitted]);
 }
-

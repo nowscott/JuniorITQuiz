@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { questionData, type Question } from '@/data/questions';
+import { questionData } from '@/data/questions';
+import type { Question } from '@/data/types';
 
 export type AppMode = 'welcome' | 'practice' | 'exam' | 'infinite';
 export type ExamState = 'intro' | 'active' | 'result';

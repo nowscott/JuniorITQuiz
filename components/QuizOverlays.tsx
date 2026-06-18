@@ -1,7 +1,7 @@
 'use client';
 
 import type { ExamConfig, NotificationState } from '@/hooks/useQuizState';
-import type { Question } from '@/data/questions';
+import type { Question } from '@/data/types';
 
 import SettingsView from './settings/SettingsView';
 import ProgressModal from './modals/ProgressModal';
