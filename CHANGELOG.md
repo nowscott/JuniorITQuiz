@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Split the monolithic `data/questions.json` into per-module files under `data/question-bank/`, with `data/questions.ts` retained as the unified app data export.
 - Updated the local development question API to read and write module-level JSON files while rejecting unsafe module file names.
 - Expanded and corrected image-question explanations so all image-based questions have detailed, image-aware explanations.
+- Removed an unused image asset and updated the admin image-path placeholder to reference an existing file.
 
 ### Documentation
 

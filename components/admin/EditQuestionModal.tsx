@@ -239,7 +239,7 @@ export default function EditQuestionModal({
                   type="text"
                   value={question.explanationImage || ''}
                   onChange={e => onChange({ ...question, explanationImage: e.target.value })}
-                  placeholder="例如：/images/module2/2-103.png 或 https://..."
+                  placeholder="例如：/images/module2/2-32.png 或 https://..."
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 {question.explanationImage && (
