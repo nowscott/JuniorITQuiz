@@ -3,7 +3,7 @@ export interface Question {
   text: string;
   options: string[];
   correctAnswer: number;
-  explanation: string;
+  explanation?: string;
   image?: string;
   explanationImage?: string;
   examQuestionId?: number;

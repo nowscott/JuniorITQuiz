@@ -78,8 +78,8 @@ function validateQuestionsData(data: unknown): string | null {
         return `${questionLabel} 正确答案索引无效`;
       }
 
-      if (typeof question.explanation !== 'string') {
-        return `${questionLabel} 缺少解析`;
+      if (question.explanation !== undefined && typeof question.explanation !== 'string') {
+        return `${questionLabel} 解析格式无效`;
       }
 
       if (question.image !== undefined && typeof question.image !== 'string') {
